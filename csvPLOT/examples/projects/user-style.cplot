@@ -3,7 +3,7 @@
   "type": "csvPLOT",
   "settings": {
     "size_mode": "axes",
-    "plot_title": "",
+    "plot_title": "多曲线与移动平均 / Signals & Moving Average",
     "width": "7",
     "height": "5",
     "font_name": "TimesSimSun",
@@ -28,8 +28,8 @@
     "smooth_window": "25",
     "x_column": "row",
     "y_column": "gentle_rising_snr16",
-    "x_label": "Row",
-    "y_label": "Response"
+    "x_label": "采样点编号 / Sample Index",
+    "y_label": "信号幅值 / Signal Amplitude"
   },
   "curves": [
     {

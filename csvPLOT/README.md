@@ -36,7 +36,7 @@ python csvPLOT/csvPLOT.py
 
 [600 DPI PNG](examples/exports/user-style.png) · [PDF](examples/exports/user-style.pdf) · [SVG](examples/exports/user-style.svg) · [user-style.cplot](examples/projects/user-style.cplot)
 
-基于手工绘制的 `test.cplot` 快照制作，保留红、橙、橄榄绿、青绿、蓝色配色，以及 **TimesSimSun 16 pt、7×5 英寸坐标区、25 点平滑、两列 best 图例、网格**。原始线透明度约 0.214，平滑线宽约 2.24；只清理占位标题并将轴标签统一为 Row / Response，原文件未改动。
+基于手工绘制的 `test.cplot` 快照制作，保留红、橙、橄榄绿、青绿、蓝色配色，以及 **TimesSimSun 16 pt、7×5 英寸坐标区、25 点平滑、两列 best 图例、网格**。原始线透明度约 0.214，平滑线宽约 2.24；示例添加了中英混排标题和轴标签：图标题为“多曲线与移动平均 / Signals & Moving Average”，X 轴为“采样点编号 / Sample Index”，Y 轴为“信号幅值 / Signal Amplitude”。TimesSimSun 同时展示宋体中文和 Times New Roman 英文，画布自动容纳较长文字，原始 `test.cplot` 未改动。
 
 这是较大单图的样式参考；若用于期刊多子图，应按最终成稿尺寸检查字号。TimesSimSun 本地加载方法见[字体说明](../common/fonts/README.md)。上方三张紧凑示例仍由图集脚本统一生成，本节手工快照单独保留。
 
