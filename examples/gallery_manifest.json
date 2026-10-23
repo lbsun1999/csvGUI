@@ -1,0 +1,130 @@
+[
+  {
+    "tool": "csvPLOT",
+    "name": "curves",
+    "project": "csvPLOT/examples/projects/curves.cplot",
+    "axes_inches": [
+      2.8,
+      2.0
+    ],
+    "figure_inches": [
+      3.9477777777777776,
+      3.5327777777777776
+    ],
+    "font_size_pt": 13,
+    "font_family": "DejaVu Serif",
+    "png_dpi": 600
+  },
+  {
+    "tool": "csvPLOT",
+    "name": "detail",
+    "project": "csvPLOT/examples/projects/detail.cplot",
+    "axes_inches": [
+      2.8,
+      2.0
+    ],
+    "figure_inches": [
+      3.6027777777777787,
+      3.223333333333333
+    ],
+    "font_size_pt": 13,
+    "font_family": "DejaVu Serif",
+    "png_dpi": 600
+  },
+  {
+    "tool": "csvPLOT",
+    "name": "smoothing",
+    "project": "csvPLOT/examples/projects/smoothing.cplot",
+    "axes_inches": [
+      2.8,
+      2.0
+    ],
+    "figure_inches": [
+      3.7838194444444446,
+      3.223333333333333
+    ],
+    "font_size_pt": 13,
+    "font_family": "DejaVu Serif",
+    "png_dpi": 600
+  },
+  {
+    "tool": "csvFIG",
+    "name": "box",
+    "project": "csvFIG/examples/projects/box.cfig",
+    "axes_inches": [
+      2.6,
+      2.05
+    ],
+    "figure_inches": [
+      3.517777777777778,
+      2.6372222222222215
+    ],
+    "font_size_pt": 13,
+    "font_family": "DejaVu Serif",
+    "png_dpi": 600
+  },
+  {
+    "tool": "csvFIG",
+    "name": "bar-error",
+    "project": "csvFIG/examples/projects/bar-error.cfig",
+    "axes_inches": [
+      2.6,
+      2.05
+    ],
+    "figure_inches": [
+      3.5177777777777783,
+      2.6372222222222215
+    ],
+    "font_size_pt": 13,
+    "font_family": "DejaVu Serif",
+    "png_dpi": 600
+  },
+  {
+    "tool": "csvFIG",
+    "name": "violin",
+    "project": "csvFIG/examples/projects/violin.cfig",
+    "axes_inches": [
+      2.6,
+      2.05
+    ],
+    "figure_inches": [
+      3.5177777777777783,
+      2.637222222222222
+    ],
+    "font_size_pt": 13,
+    "font_family": "DejaVu Serif",
+    "png_dpi": 600
+  },
+  {
+    "tool": "csvFIG",
+    "name": "violin-box",
+    "project": "csvFIG/examples/projects/violin-box.cfig",
+    "axes_inches": [
+      2.6,
+      2.05
+    ],
+    "figure_inches": [
+      3.517777777777778,
+      2.637222222222222
+    ],
+    "font_size_pt": 13,
+    "font_family": "DejaVu Serif",
+    "png_dpi": 600
+  },
+  {
+    "tool": "csvFIG",
+    "name": "box-horizontal",
+    "project": "csvFIG/examples/projects/box-horizontal.cfig",
+    "axes_inches": [
+      2.6,
+      2.05
+    ],
+    "figure_inches": [
+      3.604722222222222,
+      2.8027777777777776
+    ],
+    "font_size_pt": 13,
+    "font_family": "DejaVu Serif",
+    "png_dpi": 600
+  }
+]

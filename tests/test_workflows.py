@@ -321,8 +321,10 @@ class GuiTests(unittest.TestCase):
         self.load_csv(fig, 'distributions.csv')
         fig.column.set('group_a')
         fig.add_box()
+        fig.box_width.set(0.68)
         self.assertIsNone(fig.ax.get_legend())
         self.roundtrip(fig, 'cfig')
+        self.assertTrue(any(isinstance(w, ttk.Label) and w.cget('text') == '0.68' for w in widgets(fig)))
         self.assertFalse(fig._show_legend.get())
         self.assertIsNone(fig.ax.get_legend())
         for app in (plot, fig):

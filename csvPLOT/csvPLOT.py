@@ -206,9 +206,11 @@ class CsvPlotterApp(tk.Tk):
         row = ttk.Frame(parent); row.pack(fill=tk.X)
         val_label = ttk.Label(row, text=fmt.format(variable.get()), width=6)
 
-        def on_move(_=None):
+        def on_move(*_):
             val_label.config(text=fmt.format(variable.get()))
 
+        trace = variable.trace_add("write", on_move)
+        val_label.bind("<Destroy>", lambda _: variable.trace_remove("write", trace))
         ttk.Scale(row, from_=from_, to=to, variable=variable,
                   command=on_move).pack(side=tk.LEFT, fill=tk.X, expand=True)
         val_label.pack(side=tk.LEFT, padx=(4, 0))
