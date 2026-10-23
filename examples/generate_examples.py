@@ -80,8 +80,8 @@ def build_datasets() -> tuple[list[dict], dict]:
     curve_columns = ["row"] + [spec["column"] for spec in CURVE_SPECS]
     distribution_columns = [spec["column"] for spec in DISTRIBUTION_SPECS]
     datasets = [
-        {"path": "csvPLOT/experiment_curves.csv", "columns": curve_columns, "data": curve_data.tolist(), "integer_first_column": True},
-        {"path": "csvFIG/experiment_distributions.csv", "columns": distribution_columns, "data": distribution_data.tolist(), "integer_first_column": False},
+        {"path": "csvPLOT/examples/experiment_curves.csv", "columns": curve_columns, "data": curve_data.tolist(), "integer_first_column": True},
+        {"path": "csvFIG/examples/experiment_distributions.csv", "columns": distribution_columns, "data": distribution_data.tolist(), "integer_first_column": False},
     ]
     metadata = {
         "synthetic": True, "rows_per_csv": N, "rounding_decimals": 6,
@@ -119,12 +119,13 @@ def write_datasets(output: Path) -> None:
                     for index, value in enumerate(row)
                 ])
         print(f"Wrote {path}: {N} rows, {len(dataset['columns'])} columns")
-    (output / "dataset_metadata.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+    (output / "examples").mkdir(parents=True, exist_ok=True)
+    (output / "examples" / "dataset_metadata.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output-dir", type=Path, default=Path(__file__).resolve().parent)
+    parser.add_argument("--output-dir", type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument("--json", action="store_true", help="Emit numeric matrices and metadata without writing CSV files.")
     args = parser.parse_args()
     if args.json:

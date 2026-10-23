@@ -3,7 +3,7 @@
   "rows_per_csv": 5000,
   "rounding_decimals": 6,
   "curves": {
-    "path": "csvPLOT/experiment_curves.csv",
+    "path": "csvPLOT/examples/experiment_curves.csv",
     "seed": 20261023,
     "index": "row = 1..5000; t = row - 1",
     "model": "y = intercept + slope*t + sum(A_k*sin(2*pi*k*t/1000 + k*phase + phase_offset_k)) + noise",
@@ -143,7 +143,7 @@
     }
   },
   "distributions": {
-    "path": "csvFIG/experiment_distributions.csv",
+    "path": "csvFIG/examples/experiment_distributions.csv",
     "seed": 20261024,
     "model": "Gaussian mixtures with exact component counts (weight*5000), independently shuffled per column",
     "row_meaning": "Each column is an independent population; rows do not identify paired subjects",

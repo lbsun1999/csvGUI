@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
+import sys
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
@@ -9,7 +11,8 @@ import matplotlib.colors as mcolors
 import numpy as np
 import pandas as pd
 from matplotlib.figure import Figure
-from _plot_ui import (DEFAULT_FONT, PREVIEW_BACKGROUND,
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from common.plot_ui import (DEFAULT_FONT, PREVIEW_BACKGROUND,
                       PlotCanvas, PlotToolbar, font_family, legend_options, open_figure_settings,
                       project_axes_size)
 

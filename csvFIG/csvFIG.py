@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
+import sys
 import tkinter as tk
 from tkinter import colorchooser, filedialog, messagebox, ttk
 
@@ -10,7 +12,8 @@ import numpy as np
 import pandas as pd
 from matplotlib.cbook import boxplot_stats
 from matplotlib.figure import Figure
-from _plot_ui import (DEFAULT_FONT, PREVIEW_BACKGROUND,
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from common.plot_ui import (DEFAULT_FONT, PREVIEW_BACKGROUND,
                       PlotCanvas, PlotToolbar, font_family, legend_options, open_figure_settings,
                       project_axes_size)
 from matplotlib.lines import Line2D

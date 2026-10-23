@@ -4,8 +4,10 @@ csvGUI 包含两个 Tkinter 桌面绘图工具：**csvPLOT** 用于多曲线折�
 
 | 工具 | 输入 | 图形 | 可编辑项目 |
 | --- | --- | --- | --- |
-| `csvPLOT.py` | CSV | 原始曲线、平滑曲线、多曲线叠加 | `.cplot` |
-| `csvFIG.py` | CSV | 纵/横箱线图、柱状误差图、小提琴图、小提琴与箱线组合图 | `.cfig` |
+| [csvPLOT](csvPLOT/) | CSV | 原始曲线、平滑曲线、多曲线叠加 | `.cplot` |
+| [csvFIG](csvFIG/) | CSV | 纵/横箱线图、柱状误差图、小提琴图、小提琴与箱线组合图 | `.cfig` |
+
+每个工具使用独立目录，数据示例与项目保存位置也分别管理；`common/` 存放共享界面和字体支持。后续 csvGUI 系列工具可按同样结构继续添加。
 
 ## 窗口与控件
 
@@ -21,7 +23,7 @@ csvGUI 包含两个 Tkinter 桌面绘图工具：**csvPLOT** 用于多曲线折�
 
 ![csvFIG 主窗口、五组分布与自动倾斜标签](docs/screenshots/csvfig-window.jpg)
 
-左侧保留数据列、分组标签、颜色、宽度、图形类型和显隐选项。统计连线、标记和边框细节移到 **Advanced Settings → Distribution Style**。较长的横轴刻度标签发生重叠时会自动倾斜，并为标签预留底部空间。
+默认不显示图例，横轴标签已说明分组。下图演示手动开启 Show legend 后的效果。左侧保留数据列、分组标签、颜色、宽度、图形类型和显隐选项。统计连线、标记和边框细节移到 **Advanced Settings → Distribution Style**。较长的横轴刻度标签发生重叠时会自动倾斜，并为标签预留底部空间。
 
 ### Figure & Axes 弹窗
 
@@ -55,9 +57,9 @@ cd csvGUI
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
-python csvPLOT.py
+python csvPLOT/csvPLOT.py
 # 或者
-python csvFIG.py
+python csvFIG/csvFIG.py
 ```
 
 `requirementLists.txt` 是兼容入口，引用同一份依赖版本，也可以这样安装：
@@ -72,7 +74,7 @@ macOS/Linux 通常使用 `python3`，虚拟环境激活命令为 `source .venv/b
 python -m tkinter
 ```
 
-以上命令可以检查 Tkinter。`_plot_ui.py` 应与两个主脚本放在同一目录。
+以上命令可以检查 Tkinter。两个工具分目录维护，共用 `common/` 中的界面和字体模块。请保留仓库结构；从仓库根目录或工具目录启动均可。
 
 ## 2. 实验数据与快速绘图
 
@@ -80,14 +82,14 @@ python -m tkinter
 
 | 文件 | 形状，不含表头 | 用途 |
 | --- | --- | --- |
-| [experiment_curves.csv](examples/csvPLOT/experiment_curves.csv) | 5000 行 × 6 列 | 行号 + 五条趋势、谐波和噪声曲线 |
-| [experiment_distributions.csv](examples/csvFIG/experiment_distributions.csv) | 5000 行 × 5 列 | 五组高斯混合分布的原始观测 |
-| [curves.csv](examples/curves.csv) | 16 行 × 3 列 | 最小折线示例与回归测试 |
-| [distributions.csv](examples/distributions.csv) | 12 行 × 3 列 | 最小分布示例与回归测试 |
+| [experiment_curves.csv](csvPLOT/examples/experiment_curves.csv) | 5000 行 × 6 列 | 行号 + 五条趋势、谐波和噪声曲线 |
+| [experiment_distributions.csv](csvFIG/examples/experiment_distributions.csv) | 5000 行 × 5 列 | 五组高斯混合分布的原始观测 |
+| [curves.csv](csvPLOT/examples/curves.csv) | 16 行 × 3 列 | 最小折线示例与回归测试 |
+| [distributions.csv](csvFIG/examples/distributions.csv) | 12 行 × 3 列 | 最小分布示例与回归测试 |
 
 ### 2.1 五条实验曲线
 
-运行 `csvPLOT.py`，点击 **Load CSV** 打开 `examples/csvPLOT/experiment_curves.csv`，X 选择 `row`。首列为 **1 到 5000 的行号**，其余列都同时包含线性项、三个谐波和噪声。
+运行 `csvPLOT.py`，点击 **Load CSV** 打开 `csvPLOT/examples/experiment_curves.csv`，X 选择 `row`。首列为 **1 到 5000 的行号**，其余列都同时包含线性项、三个谐波和噪声。
 
 | Y 列 | 趋势 | 目标信噪比 | 建议颜色 |
 | --- | --- | --- | --- |
@@ -106,11 +108,11 @@ python -m tkinter
 
 下面是使用该 CSV 绘制的示意效果，平滑窗口为 100：
 
-![五条实验曲线的原始线和平滑线](examples/previews/curves.png)
+![五条实验曲线的原始线和平滑线](csvPLOT/examples/previews/curves.png)
 
 ### 2.2 五组实验分布
 
-运行 `csvFIG.py`，打开 `examples/csvFIG/experiment_distributions.csv`。此文件**没有行号列**，五列都是观测数据。
+运行 `csvFIG.py`，打开 `csvFIG/examples/experiment_distributions.csv`。此文件**没有行号列**，五列都是观测数据。
 
 | 数据列 | 分布特点 | 建议颜色 |
 | --- | --- | --- |
@@ -130,15 +132,15 @@ python -m tkinter
 
 下面是同一组原始观测的 Violin+Box 示例：
 
-![五组高斯混合分布的小提琴与箱线组合图](examples/previews/distributions.png)
+![五组高斯混合分布的小提琴与箱线组合图](csvFIG/examples/previews/distributions.png)
 
 ### 2.3 手动保存实验项目
 
-`examples/projects/` 已预留给手动绘制后的项目。样式设置完成后，建议保存为：
+两个工具各自的 `examples/projects/` 已预留给手动绘制后的项目。样式设置完成后，建议保存为：
 
 ```text
-examples/projects/experiment_curves.cplot
-examples/projects/experiment_distributions.cfig
+csvPLOT/examples/projects/experiment_curves.cplot
+csvFIG/examples/projects/experiment_distributions.cfig
 ```
 
 当前仓库准备了 CSV 和该目录，**尚未提供上述两个项目文件**，可以根据自己的绘图结果保存后再加入仓库。
@@ -226,7 +228,7 @@ examples/projects/experiment_distributions.cfig
 | **Show legend** | 显示当前启用的 Median、Mean、Outliers 等统计元素说明 |
 | **Global Box Alpha** | 高级设置中的整体透明度 `0–1`，Apply 后应用于所有数据项 |
 
-csvFIG 的图例显示各组颜色及名称，还可以说明中位数、均值与离群点。**Figure & Axes → Legend** 支持 `best` 自动选择、指定图内位置、图外位置与列数，这些设置会保存到 `.cfig` 项目。
+csvFIG **默认不显示图例**，各组名称由坐标轴标签说明。需要时可以手动勾选 **Show legend**，显示各组颜色及名称，以及中位数、均值与离群点的说明。打开项目时恢复其保存的图例开关。分簇箱线图计划后续添加，当前版本尚不支持。**Figure & Axes → Legend** 支持 `best` 自动选择、指定图内位置、图外位置与列数，这些设置会保存到 `.cfig` 项目。
 
 统计连线、连线样式、标记尺寸和边框细节位于 **Advanced Settings → Distribution Style**。
 
@@ -251,9 +253,9 @@ csvFIG 的图例显示各组颜色及名称，还可以说明中位数、均值�
 
 **Axes & Labels** 页签可编辑 **Plot Title、X-Axis Label、Y-Axis Label** 及 X/Y 网格。较长的横轴刻度标签重叠时自动旋转 45°，恢复空间后重新水平排列。
 
-程序优先使用已找到的 **TimesSimSun**，适合宋体中文和 Times New Roman 英文混排。将有权使用的字体文件放入 `fonts/`，重启后自动注册，不需要在系统中安装。没有该字体时使用 Matplotlib 自带字体，也可以选择本机已安装的中文字体。字体下拉框还支持手动输入名称。
+程序优先使用已找到的 **TimesSimSun**，适合宋体中文和 Times New Roman 英文混排。将有权使用的字体文件放入 `common/fonts/`，重启后自动注册，不需要在系统中安装。没有该字体时使用 Matplotlib 自带字体，也可以选择本机已安装的中文字体。字体下拉框还支持手动输入名称。
 
-TimesSimSun 的用户提供来源为公众号 **阿昆的科研日常**，[原文链接](https://mp.weixin.qq.com/s/Z--wuiasKW90wUn2dsC5kw)。本地副本已接入字体；公开仓库不包含字体二进制，获取来源不等于原字体的再分发许可，详见 [fonts/README.md](fonts/README.md)。
+TimesSimSun 的用户提供来源为公众号 **阿昆的科研日常**，[原文链接](https://mp.weixin.qq.com/s/Z--wuiasKW90wUn2dsC5kw)。本地副本已接入字体；公开仓库不包含字体二进制，获取来源不等于原字体的再分发许可，详见 [fonts/README.md](common/fonts/README.md)。
 
 坐标区是坐标轴边框以内的数据绘制区域。程序按字体和字号测量刻度、轴标签、标题及图例，在四周自动增加画布空间，保持指定的坐标区宽高；长横轴刻度标签重叠时自动倾斜。缩小坐标区或增大字号时，文字仍会被纳入画布；减小字号或缩短文字后，多余边距也会收回。
 
@@ -369,26 +371,29 @@ offset = [0, 0.4, 0.8] rad
 ## 9. 文件结构与检查
 
 ```text
-csvPLOT.py                    折线图工具
-csvFIG.py                     分布图工具
-_plot_ui.py                   字体、画布与设置弹窗
-fonts/                        本地字体与来源说明
-docs/screenshots/             实际窗口与控件截图
-requirements.txt              依赖清单
-requirementLists.txt           依赖清单兼容入口
-LICENSE                       MIT 许可证
+csvPLOT/
+  csvPLOT.py                  折线图工具
+  README.md                   工具入口与示例说明
+  requirements.txt            工具依赖入口
+  requirementLists.txt        兼容依赖入口
+  examples/                   CSV、预览和 projects/ 项目目录
+csvFIG/
+  csvFIG.py                   分布图工具
+  README.md                   工具入口与示例说明
+  requirements.txt            工具依赖入口
+  requirementLists.txt        兼容依赖入口
+  examples/                   CSV、预览和 projects/ 项目目录
+common/
+  plot_ui.py                  共用字体、画布与设置弹窗
+  fonts/                      本地字体与来源说明
 examples/
-  curves.csv                  小样本折线数据
-  distributions.csv           小样本分布数据
-  generate_examples.py        大样本数据生成器
+  generate_examples.py        两个工具的实验数据生成器
   dataset_metadata.json       种子、参数、SNR 和摘要
-  csvPLOT/
-    experiment_curves.csv     5000 × 6
-  csvFIG/
-    experiment_distributions.csv  5000 × 5
-  previews/                   实验数据绘图预览 PNG
-  projects/                   预留给手动保存的项目
-tests/                        数值及 GUI 工作流检查
+docs/screenshots/             实际窗口与控件截图
+tests/                        数值与 GUI 工作流检查
+requirements.txt              系列共用依赖
+requirementLists.txt           兼容依赖入口
+LICENSE                       MIT 许可证
 ```
 
 ```powershell

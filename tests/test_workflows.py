@@ -17,8 +17,8 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-import csvFIG
-import csvPLOT
+from csvFIG import csvFIG
+from csvPLOT import csvPLOT
 
 
 def widgets(parent):
@@ -68,7 +68,8 @@ class GuiTests(unittest.TestCase):
         return app
 
     def load_csv(self, app, name):
-        with patch("tkinter.filedialog.askopenfilename", return_value=str(ROOT / "examples" / name)):
+        tool = 'csvFIG' if isinstance(app, csvFIG.CsvFigApp) else 'csvPLOT'
+        with patch("tkinter.filedialog.askopenfilename", return_value=str(ROOT / tool / "examples" / name)):
             app.load_csv()
 
     def roundtrip(self, app, extension):
@@ -316,6 +317,14 @@ class GuiTests(unittest.TestCase):
         np.testing.assert_allclose(plot._curves[0]['smooth_line'].get_ydata(),
                                    csvPLOT.trailing_moving_average(plot._curves[0]['raw_y'], 25))
         fig = self.app(csvFIG.CsvFigApp)
+        self.assertFalse(fig._show_legend.get())
+        self.load_csv(fig, 'distributions.csv')
+        fig.column.set('group_a')
+        fig.add_box()
+        self.assertIsNone(fig.ax.get_legend())
+        self.roundtrip(fig, 'cfig')
+        self.assertFalse(fig._show_legend.get())
+        self.assertIsNone(fig.ax.get_legend())
         for app in (plot, fig):
             top_buttons = [w for w in widgets(app) if isinstance(w, ttk.Button)][:3]
             self.assertEqual([w.cget('text') for w in top_buttons], ['Load CSV', 'Save Project', 'Open Project'])
