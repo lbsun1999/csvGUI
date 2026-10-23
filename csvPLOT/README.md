@@ -30,6 +30,16 @@ python csvPLOT/csvPLOT.py
 
 局部视图显示行号 1000–1800，项目中仍保留完整的 5000 点。窗口比较使用 `falling_snr6`，图例 W25、W100、W300 表示点数窗口，浅色原始线会叠加；更大的窗口会平滑更多细节并带来滞后。窗口比较项目保存了三条各自计算的平滑线；点击 **Re-smooth All Curves** 会将它们统一为输入框中的窗口。
 
+### 手工样式补充示例
+
+<img src="examples/exports/user-style.png" width="640" alt="手工调色与 TimesSimSun 字体示例">
+
+[600 DPI PNG](examples/exports/user-style.png) · [PDF](examples/exports/user-style.pdf) · [SVG](examples/exports/user-style.svg) · [user-style.cplot](examples/projects/user-style.cplot)
+
+基于手工绘制的 `test.cplot` 快照制作，保留红、橙、橄榄绿、青绿、蓝色配色，以及 **TimesSimSun 16 pt、7×5 英寸坐标区、25 点平滑、两列 best 图例、网格**。原始线透明度约 0.214，平滑线宽约 2.24；只清理占位标题并将轴标签统一为 Row / Response，原文件未改动。
+
+这是较大单图的样式参考；若用于期刊多子图，应按最终成稿尺寸检查字号。TimesSimSun 本地加载方法见[字体说明](../common/fonts/README.md)。上方三张紧凑示例仍由图集脚本统一生成，本节手工快照单独保留。
+
 ## 直接从项目继续编辑
 
 1. 点击 **Open Project**，选择本目录 `examples/projects/` 中的任一 `.cplot`。

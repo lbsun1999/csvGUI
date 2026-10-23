@@ -4,7 +4,7 @@
 
 | 工具 | 用途 | 文档与图集 | 可编辑项目 |
 | --- | --- | --- | --- |
-| **csvPLOT** | 多曲线叠加、移动平均平滑、局部视图 | [完整说明与 3 个示例](csvPLOT/README.md) | [3 个 .cplot](csvPLOT/examples/projects/) |
+| **csvPLOT** | 多曲线叠加、移动平均平滑、局部视图 | [完整说明、紧凑图集与手工样式](csvPLOT/README.md) | [4 个 .cplot](csvPLOT/examples/projects/) |
 | **csvFIG** | 箱线图、柱状误差图、小提琴图及组合图 | [完整说明与 5 个示例](csvFIG/README.md) | [5 个 .cfig](csvFIG/examples/projects/) |
 
 ## 紧凑期刊插图
