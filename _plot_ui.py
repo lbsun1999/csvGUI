@@ -8,7 +8,9 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 
 from matplotlib import font_manager
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.backends.backend_agg import FigureCanvasAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from matplotlib.transforms import Bbox
 
 PREVIEW_BACKGROUND = "#e5e7eb"
 LEGEND_LOCATIONS = [
@@ -58,16 +60,40 @@ def legend_options(location: str) -> dict:
     return {"loc": location or "best"}
 
 
-class PlotCanvas(FigureCanvasTkAgg):
-    """Keep one image on a fixed-aspect preview surrounded by clean gray space.
+def project_axes_size(settings: dict, distribution: bool = False) -> tuple[str, str]:
+    """Convert legacy whole-figure dimensions to their former axes dimensions."""
+    width, height = settings.get("width", "9"), settings.get("height", "5.5")
+    if settings.get("size_mode") == "axes":
+        return str(width), str(height)
+    location = settings.get("legend_loc", "best")
+    visible = settings.get("show_legend", False) if distribution else not settings.get("hide_legend", False)
+    x_fraction = 0.66 if visible and location == "outside right" else 0.82
+    y_fraction = ((0.66 if distribution else 0.68) if visible and location == "outside lower" else
+                  0.68 if visible and location == "outside upper" else 0.76)
+    return f"{float(width) * x_fraction:.6g}", f"{float(height) * y_fraction:.6g}"
 
-    Large figures are scaled to fit the viewport. Their requested inch dimensions
-    and original export DPI remain unchanged.
+
+class PlotToolbar(NavigationToolbar2Tk):
+    """Route the layout button to the axes settings used by automatic layout."""
+    def __init__(self, canvas, master, settings_command, **kwargs):
+        self.settings_command = settings_command
+        super().__init__(canvas, master, **kwargs)
+
+    def configure_subplots(self):
+        return self.settings_command()
+
+
+class PlotCanvas(FigureCanvasTkAgg):
+    """Keep the axes size in inches; grow the figure to enclose its decorations.
+
+    Layout is measured at export DPI. Only the preview DPI is reduced when the
+    complete figure is larger than the available gray viewport.
     """
     def __init__(self, figure, master):
         self.requested_inches = tuple(figure.get_size_inches())
+        self.total_inches = self.requested_inches
         self.base_dpi = figure.dpi
-        self.base_bottom = 0.14
+        self.legend_location = "best"
         self._drawing = False
         super().__init__(figure, master=master)
         self.get_tk_widget().place(x=0, y=0)
@@ -75,10 +101,87 @@ class PlotCanvas(FigureCanvasTkAgg):
 
     def set_size_inches(self, width: float, height: float) -> None:
         self.requested_inches = (width, height)
-        self._fit()
+        self.draw_idle()
 
     def _fit(self, event=None):
+        self.draw_idle()
+
+    def resize(self, event):
+        # Tk Configure events describe the preview, never the requested axes.
+        self.draw_idle()
+
+    def _position_axes(self, ax, margins):
+        left, right, bottom, top = margins
         width, height = self.requested_inches
+        self.total_inches = (left + width + right, bottom + height + top)
+        self.figure.set_size_inches(*self.total_inches, forward=False)
+        self.figure.subplots_adjust(
+            left=left / self.total_inches[0], right=(left + width) / self.total_inches[0],
+            bottom=bottom / self.total_inches[1], top=(bottom + height) / self.total_inches[1])
+
+    def _place_outside_legend(self, ax, renderer):
+        legend = ax.get_legend()
+        if legend is None or not legend.get_visible():
+            return
+        location = self.legend_location
+        if not location.startswith("outside "):
+            return
+        # Anchor beyond the tick labels, axis labels and title, not just the spine.
+        bounds = ax.get_tightbbox(renderer, bbox_extra_artists=[])
+        area = ax.get_window_extent(renderer)
+        gap = self.base_dpi * 0.12
+        anchors = {
+            "outside upper": (0.5, (bounds.y1 - area.y0 + gap) / area.height),
+            "outside lower": (0.5, (bounds.y0 - area.y0 - gap) / area.height),
+            "outside right": ((bounds.x1 - area.x0 + gap) / area.width, 0.5),
+        }
+        legend.set_bbox_to_anchor(anchors[location], transform=ax.transAxes)
+
+    def _layout(self):
+        self.figure.set_dpi(self.base_dpi)
+        if not self.figure.axes:
+            return
+        ax = self.figure.axes[0]
+        padding = 0.12  # inches, also covers small raster/vector font metric differences
+        margins = (padding,) * 4
+        self._position_axes(ax, margins)
+        labels = ax.get_xticklabels()
+        for label in labels:
+            label.set_rotation(0)
+            label.set_ha("center")
+            label.set_rotation_mode("anchor")
+        FigureCanvasAgg.draw(self)
+        renderer = self.get_renderer()
+        low, high = sorted(ax.get_xlim())
+        visible_labels = [label for label in ax.get_xticklabels()
+                          if label.get_visible() and label.get_text()
+                          and low <= label.get_position()[0] <= high]
+        bounds = sorted((label.get_window_extent(renderer) for label in visible_labels), key=lambda box: box.x0)
+        if any(left.x1 + 8 > right.x0 for left, right in zip(bounds, bounds[1:])):
+            for label in ax.get_xticklabels():
+                label.set_rotation(45)
+                label.set_ha("right")
+
+        for _ in range(4):
+            FigureCanvasAgg.draw(self)
+            renderer = self.get_renderer()
+            self._place_outside_legend(ax, renderer)
+            area = ax.get_window_extent(renderer)
+            boxes = [ax.get_tightbbox(renderer)]
+            legend = ax.get_legend()
+            if legend is not None and legend.get_visible():
+                boxes.append(legend.get_window_extent(renderer))
+            tight = Bbox.union([box for box in boxes if box is not None])
+            margins = (
+                padding + max(0, area.x0 - tight.x0) / self.base_dpi,
+                padding + max(0, tight.x1 - area.x1) / self.base_dpi,
+                padding + max(0, area.y0 - tight.y0) / self.base_dpi,
+                padding + max(0, tight.y1 - area.y1) / self.base_dpi,
+            )
+            self._position_axes(ax, margins)
+
+    def _fit_preview(self):
+        width, height = self.total_inches
         parent = self.get_tk_widget().master
         available_w = parent.winfo_width()
         available_h = parent.winfo_height()
@@ -87,53 +190,29 @@ class PlotCanvas(FigureCanvasTkAgg):
             scale = min(1.0, available_w / (width * self.base_dpi), available_h / (height * self.base_dpi))
         self.figure.set_dpi(self.base_dpi * max(scale, 0.01))
         self.figure.set_size_inches(width, height, forward=False)
-        pixels_w = max(1, round(width * self.figure.dpi))
-        pixels_h = max(1, round(height * self.figure.dpi))
+        pixels_w = max(1, int(width * self.figure.dpi))
+        pixels_h = max(1, int(height * self.figure.dpi))
         self.get_tk_widget().place(x=0, y=0, width=pixels_w, height=pixels_h)
         if self._tkphoto.width() != pixels_w or self._tkphoto.height() != pixels_h:
-            self.resize(SimpleNamespace(width=pixels_w, height=pixels_h))
-        else:
-            self.draw_idle()
-
-    def resize(self, event):
-        super().resize(event)
-        self.figure.set_size_inches(*self.requested_inches, forward=False)
+            # The backend replaces the old image instead of stacking new images.
+            super().resize(SimpleNamespace(width=pixels_w, height=pixels_h))
+            self.figure.set_size_inches(width, height, forward=False)
 
     def draw(self):
         if self._drawing:
             return
         self._drawing = True
         try:
-            if not self.figure.axes:
-                return super().draw()
-            ax = self.figure.axes[0]
-            labels = [label for label in ax.get_xticklabels() if label.get_visible() and label.get_text()]
-            for label in labels:
-                label.set_rotation(0)
-                label.set_ha("center")
-                label.set_rotation_mode("anchor")
-            self.figure.subplots_adjust(bottom=self.base_bottom)
+            self._layout()
+            self._fit_preview()
             super().draw()
-            renderer = self.get_renderer()
-            bounds = sorted((label.get_window_extent(renderer) for label in labels), key=lambda box: box.x0)
-            crowded = any(left.x1 + 8 > right.x0 for left, right in zip(bounds, bounds[1:]))
-            if crowded:
-                for label in labels:
-                    label.set_rotation(45)
-                    label.set_ha("right")
-                super().draw()
-                renderer = self.get_renderer()
-                boxes = [label.get_window_extent(renderer) for label in labels]
-                lowest = min((box.y0 for box in boxes), default=12)
-                bottom = self.base_bottom + max(0, (12 - lowest) / self.figure.bbox.height)
-                # Leave room for the X-axis title as well as rotated tick labels.
-                if ax.get_xlabel():
-                    title = ax.xaxis.label.get_window_extent(renderer)
-                    bottom = max(bottom, self.base_bottom + max(0, (10 - title.y0) / self.figure.bbox.height))
-                self.figure.subplots_adjust(bottom=min(self.figure.subplotpars.top - 0.10, bottom))
-                super().draw()
         finally:
             self._drawing = False
+
+    def print_figure(self, *args, **kwargs):
+        # Apply pending settings before the toolbar or Figure.savefig exports.
+        self.draw()
+        return super().print_figure(*args, **kwargs)
 
 
 def open_figure_settings(app, distribution: bool = False):
@@ -154,7 +233,7 @@ def open_figure_settings(app, distribution: bool = False):
     book = ttk.Notebook(dialog)
     book.pack(fill=tk.BOTH, expand=True, padx=12, pady=12)
     tabs = {}
-    for title in ("Canvas & Font", "Axes & Labels", "Legend"):
+    for title in ("Plot Area & Font", "Axes & Labels", "Legend"):
         tab = ttk.Frame(book, padding=14)
         tab.columnconfigure(1, weight=1)
         book.add(tab, text=title)
@@ -184,12 +263,14 @@ def open_figure_settings(app, distribution: bool = False):
         ttk.Label(tab, text=label).grid(row=row, column=0, sticky="w", padx=(0, 12), pady=7)
         ttk.Entry(tab, textvariable=values[key]).grid(row=row, column=1, sticky="ew", pady=7)
 
-    canvas = tabs["Canvas & Font"]
-    entry(canvas, 0, "Width (inches)", "width")
-    entry(canvas, 1, "Height (inches)", "height")
+    canvas = tabs["Plot Area & Font"]
+    entry(canvas, 0, "Axes Width (inches)", "width")
+    entry(canvas, 1, "Axes Height (inches)", "height")
     ttk.Label(canvas, text="Font").grid(row=2, column=0, sticky="w", pady=7)
     ttk.Combobox(canvas, textvariable=values["font_name"], values=FONT_CHOICES).grid(row=2, column=1, sticky="ew", pady=7)
     entry(canvas, 3, "Font Size", "font_size")
+    ttk.Label(canvas, text="Figure margins automatically fit labels and legends.",
+              wraplength=400).grid(row=4, column=0, columnspan=2, sticky="w", pady=(12, 0))
     axes = tabs["Axes & Labels"]
     entry(axes, 0, "Plot Title", "plot_title")
     entry(axes, 1, "X-Axis Label", "x_label")
@@ -225,7 +306,7 @@ def open_figure_settings(app, distribution: bool = False):
             for key in ("width", "height", "font_size"):
                 number = float(values[key].get())
                 if not math.isfinite(number) or number <= 0:
-                    raise ValueError("Figure dimensions and font size must be finite and positive.")
+                    raise ValueError("Axes dimensions and font size must be finite and positive.")
             for axis in (("y",) if distribution else ("x", "y")):
                 low, high = values[f"{axis}min"].get().strip(), values[f"{axis}max"].get().strip()
                 step = values[f"{axis}_tick_step"].get().strip()

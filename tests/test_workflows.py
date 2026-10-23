@@ -174,16 +174,6 @@ class GuiTests(unittest.TestCase):
         next(w for w in widgets(dialog) if isinstance(w, ttk.Button) and w.cget("text") == "Apply").invoke()
         self.assertTrue(app.bind("<MouseWheel>"))
 
-    def test_txt_distributions(self):
-        app = self.app(csvFIG.CsvFigApp)
-        path = ROOT / "examples" / "distributions.txt"
-        with patch("tkinter.filedialog.askopenfilename", return_value=str(path)):
-            app.load_txt()
-        self.assertEqual(len(app._boxes), 3)
-        self.assertEqual(app.plot_title.get(), "Example distributions")
-        self.roundtrip(app, "cfig")
-        self.assertEqual(app._boxes[0]["stats"]["n"], 8)
-
     def test_constant_distribution_can_render_violin(self):
         app = self.app(csvFIG.CsvFigApp)
         app.data = pd.DataFrame({"constant": [3, 3, 3, np.inf]})
@@ -217,25 +207,119 @@ class GuiTests(unittest.TestCase):
             error.assert_called_once()
             self.assertIsNone(app.data)
 
-    def test_canvas_resize_cleans_old_image_and_keeps_export_size(self):
+    def test_canvas_resize_cleans_old_image_and_keeps_axes_export_size(self):
         for cls in (csvPLOT.CsvPlotterApp, csvFIG.CsvFigApp):
             app = self.app(cls)
             canvas = app.canvas
             for width, height in ((9, 5.5), (4, 4), (8, 6), (3, 2)):
                 with patch.object(app.plot_area, 'winfo_width', return_value=500), patch.object(app.plot_area, 'winfo_height', return_value=350):
                     canvas.set_size_inches(width, height)
-                canvas.draw()
-                np.testing.assert_allclose(app.figure.get_size_inches(), [width, height])
-                widget = canvas.get_tk_widget()
-                images = [item for item in widget.find_all() if widget.type(item) == 'image']
-                self.assertEqual(len(images), 1)
-                self.assertLessEqual(canvas._tkphoto.width(), 500)
-                self.assertLessEqual(canvas._tkphoto.height(), 350)
-                path = self.tmp / 'resized.png'
-                app.figure.savefig(path)
-                with Image.open(path) as image:
-                    self.assertEqual(image.size, (round(width * 100), round(height * 100)))
+                    canvas.draw()
+                    actual_axes = app.ax.get_window_extent().size / app.figure.dpi
+                    np.testing.assert_allclose(actual_axes, [width, height])
+                    self.assertTrue(np.all(app.figure.get_size_inches() > [width, height]))
+                    widget = canvas.get_tk_widget()
+                    images = [item for item in widget.find_all() if widget.type(item) == 'image']
+                    self.assertEqual(len(images), 1)
+                    self.assertLessEqual(canvas._tkphoto.width(), 500)
+                    self.assertLessEqual(canvas._tkphoto.height(), 350)
+                    path = self.tmp / 'resized.png'
+                    app.figure.savefig(path)
+                    with Image.open(path) as image:
+                        self.assertEqual(image.size, tuple(int(size * canvas.base_dpi) for size in canvas.total_inches))
             self.assertEqual(app.plot_area.cget('background'), '#e5e7eb')
+
+    def test_small_axes_grow_figure_to_fit_large_text_and_outside_legends(self):
+        for cls in (csvPLOT.CsvPlotterApp, csvFIG.CsvFigApp):
+            app = self.app(cls)
+            app.font_size.set('24')
+            app.plot_title.set('A long experimental comparison title')
+            if isinstance(app, csvPLOT.CsvPlotterApp):
+                app.width.set('2')
+                app.height.set('1')
+                app.data = pd.DataFrame({'condition': ['Long condition A', 'Long condition B', 'Long condition C'],
+                                         'measurements': [1e9, 2e9, 3e9]})
+                app.x_column.set('condition')
+                app.y_column.set('measurements')
+                app.plot_selected()
+                app.ax.set_xlabel('Experimental condition label')
+                app.ax.set_ylabel('Measured response label')
+            else:
+                app.width_fig.set('2')
+                app.height_fig.set('1')
+                self.load_csv(app, 'distributions.csv')
+                for name in ('group_a', 'group_b', 'group_c'):
+                    app.column.set(name)
+                    app._on_column_changed()
+                    app.box_label.set('Long experimental condition ' + name)
+                    app.add_box()
+                    app.hold.set(True)
+                app.x_label_var.set('Experimental condition label')
+                app.y_label_var.set('Measured response label')
+                app._show_legend.set(True)
+            for location in ('best', 'outside lower', 'outside upper', 'outside right'):
+                with self.subTest(app=cls.__name__, location=location):
+                    app.legend_loc.set(location)
+                    if isinstance(app, csvPLOT.CsvPlotterApp):
+                        app._update_legend()
+                        app._apply_appearance()
+                    else:
+                        app._redraw()
+                    canvas = app.canvas
+                    renderer = canvas.get_renderer()
+                    bounds = app.ax.get_tightbbox(renderer)
+                    figure = app.figure.bbox
+                    self.assertGreaterEqual(bounds.x0, 4)
+                    self.assertGreaterEqual(bounds.y0, 4)
+                    self.assertLessEqual(bounds.x1, figure.width - 4)
+                    self.assertLessEqual(bounds.y1, figure.height - 4)
+                    np.testing.assert_allclose(app.ax.get_window_extent().size / app.figure.dpi, [2, 1])
+                    if location.startswith('outside'):
+                        decoration = app.ax.get_tightbbox(renderer, bbox_extra_artists=[])
+                        legend = app.ax.get_legend().get_window_extent(renderer)
+                        if location == 'outside lower':
+                            self.assertLess(legend.y1, decoration.y0)
+                        elif location == 'outside upper':
+                            self.assertGreater(legend.y0, decoration.y1)
+                        else:
+                            self.assertGreater(legend.x0, decoration.x1)
+                    app.figure.savefig(self.tmp / f'{cls.__name__}-{location}.png')
+            large_size = np.array(canvas.total_inches)
+            app.font_size.set('10')
+            app.plot_title.set('')
+            if isinstance(app, csvPLOT.CsvPlotterApp):
+                app._apply_appearance()
+            else:
+                app._redraw()
+            self.assertTrue(np.all(np.array(canvas.total_inches) < large_size))
+
+    def test_project_axes_units_and_legacy_figure_conversion(self):
+        for cls, extension in ((csvPLOT.CsvPlotterApp, 'cplot'), (csvFIG.CsvFigApp, 'cfig')):
+            app = self.app(cls)
+            saved = self.roundtrip(app, extension)
+            self.assertEqual(saved['settings']['size_mode'], 'axes')
+            np.testing.assert_allclose(app.canvas.requested_inches, [9, 5.5])
+            saved['settings'].pop('size_mode')
+            path = self.tmp / f'legacy.{extension}'
+            path.write_text(json.dumps(saved), encoding='utf-8')
+            with patch('tkinter.filedialog.askopenfilename', return_value=str(path)):
+                app.load_project()
+            np.testing.assert_allclose(app.canvas.requested_inches, [9 * .82, 5.5 * .76])
+
+    def test_default_smoothing_and_csv_import_controls(self):
+        plot = self.app(csvPLOT.CsvPlotterApp)
+        self.assertEqual(plot.smooth_window.get(), '25')
+        self.load_csv(plot, 'curves.csv')
+        plot.x_column.set('step')
+        plot.y_column.set('signal_a')
+        plot.plot_selected()
+        np.testing.assert_allclose(plot._curves[0]['smooth_line'].get_ydata(),
+                                   csvPLOT.trailing_moving_average(plot._curves[0]['raw_y'], 25))
+        fig = self.app(csvFIG.CsvFigApp)
+        for app in (plot, fig):
+            top_buttons = [w for w in widgets(app) if isinstance(w, ttk.Button)][:3]
+            self.assertEqual([w.cget('text') for w in top_buttons], ['Load CSV', 'Save Project', 'Open Project'])
+        self.assertFalse(any(isinstance(w, ttk.Button) and w.cget('text') == 'Load TXT' for w in widgets(fig)))
 
     def test_figure_dialog_stages_settings_without_sidebar_scrollbars(self):
         for cls in (csvPLOT.CsvPlotterApp, csvFIG.CsvFigApp):
@@ -244,6 +328,7 @@ class GuiTests(unittest.TestCase):
             self.assertFalse(any(isinstance(w, ttk.Label) and str(w.cget('textvariable')) == str(app.status) for w in widgets(app)))
             dialog = app._open_figure_settings()
             self.assertIs(dialog, app._open_figure_settings())
+            self.assertIs(dialog, app.canvas.toolbar.configure_subplots())
             self.assertFalse(any(isinstance(w, ttk.Scrollbar) for w in widgets(dialog)))
             values = dialog._settings_values
             original = app.canvas.requested_inches

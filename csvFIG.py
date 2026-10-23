@@ -1,39 +1,22 @@
-"""CSV and TXT distribution plots with styling and project files."""
+"""CSV distribution plots with styling and project files."""
 from __future__ import annotations
 
 import json
-import os
-import sys
 import tkinter as tk
 from tkinter import colorchooser, filedialog, messagebox, ttk
 
 import matplotlib.colors as mcolors
 import numpy as np
 import pandas as pd
-from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 from matplotlib.cbook import boxplot_stats
 from matplotlib.figure import Figure
 from _plot_ui import (DEFAULT_FONT, PREVIEW_BACKGROUND,
-                      PlotCanvas, font_family, legend_options, open_figure_settings)
+                      PlotCanvas, PlotToolbar, font_family, legend_options, open_figure_settings,
+                      project_axes_size)
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 from matplotlib.ticker import FuncFormatter, MultipleLocator
 from scipy.stats import gaussian_kde
-
-# Pull in the shared TXT parser from this folder. We add the script's own
-# directory to sys.path first so that running `python csvFIG.py` from any
-# working directory still picks up _txt_io.
-_HERE = os.path.dirname(os.path.abspath(__file__))
-if _HERE not in sys.path:
-    sys.path.insert(0, _HERE)
-try:
-    from _txt_io import (
-        read_txt as _read_txt,
-        postprocess_csvfig as _pp_csvfig,
-    )
-    _HAS_TXT = True
-except Exception:  # noqa: BLE001
-    _HAS_TXT = False
 
 COLOR_PALETTE = [
     ("Deep Red",    "#A6232F"),
@@ -118,12 +101,7 @@ class CsvFigApp(tk.Tk):
         self._edge_mode_text = tk.StringVar(value="Edges: Color")
         self._boxes: list[dict] = []
         self._added_key: str | None = None
-        if _HAS_TXT:
-            self.status = tk.StringVar(
-                value="Load CSV for one column, or Load TXT for a multi-series distribution set."
-            )
-        else:
-            self.status = tk.StringVar(value="Please load a CSV file first.")
+        self.status = tk.StringVar(value="Please load a CSV file first.")
         self._orig_y_fmt: object = None
         self.box_width.trace_add("write", self._on_width_changed)
         self._edge_lw.trace_add("write", lambda *_: self._redraw() if self._boxes else None)
@@ -140,10 +118,8 @@ class CsvFigApp(tk.Tk):
         chart_frame = ttk.Frame(self, padding=(0, 10, 10, 10))
         chart_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
-        row1 = ttk.Frame(controls); row1.pack(fill=tk.X, pady=(0, 2))
-        ttk.Button(row1, text="Load CSV", command=self.load_csv).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(0, 3))
-        ttk.Button(row1, text="Load TXT", command=self.load_txt).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(3, 0))
-        row2 = ttk.Frame(controls); row2.pack(fill=tk.X)
+        ttk.Button(controls, text="Load CSV", command=self.load_csv).pack(fill=tk.X)
+        row2 = ttk.Frame(controls); row2.pack(fill=tk.X, pady=(4, 0))
         ttk.Button(row2, text="Save Project", command=self.save_project).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(0, 3))
         ttk.Button(row2, text="Open Project", command=self.load_project).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(3, 0))
 
@@ -182,7 +158,7 @@ class CsvFigApp(tk.Tk):
         self.ax = self.figure.add_subplot(111)
         self.plot_area = tk.Frame(chart_frame, background=PREVIEW_BACKGROUND)
         self.canvas = PlotCanvas(self.figure, master=self.plot_area)
-        toolbar = NavigationToolbar2Tk(self.canvas, chart_frame, pack_toolbar=False)
+        toolbar = PlotToolbar(self.canvas, chart_frame, self._open_figure_settings, pack_toolbar=False)
         toolbar.update()
         toolbar.pack(side=tk.TOP, fill=tk.X)
         self.plot_area.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
@@ -314,79 +290,6 @@ class CsvFigApp(tk.Tk):
         fname = self.current_file.split("/")[-1].split("\\")[-1]
         self.status.set(f"Added '{label}' from {fname}  (N={stats['n']}, median={stats['med']:.4f})")
 
-    def load_txt(self) -> None:
-        """Load a structured TXT project with multiple distribution series."""
-        if not _HAS_TXT:
-            messagebox.showerror(
-                "Unavailable",
-                "The shared _txt_io module is missing from this folder.\n"
-                "Please copy _txt_io.py alongside csvFIG.py.",
-            )
-            return
-        path = filedialog.askopenfilename(
-            title="Load TXT Project",
-            filetypes=[("csvFIG TXT", "*.txt"), ("All files", "*.*")],
-        )
-        if not path:
-            return
-        try:
-            payload = _pp_csvfig(_read_txt(path))
-        except Exception as exc:  # noqa: BLE001
-            messagebox.showerror("TXT Load Failed", str(exc))
-            return
-
-        s = payload.get("settings", {})
-        # Apply UI settings
-        if "title" in s:
-            self.plot_title.set(str(s["title"]))
-        if "x_label" in s:
-            self.x_label_var.set(str(s["x_label"]))
-        if "y_label" in s:
-            self.y_label_var.set(str(s["y_label"]))
-        if "width" in s:
-            try:
-                self.width_fig.set(str(s["width"]))
-            except Exception:
-                pass
-        if "height" in s:
-            try:
-                self.height_fig.set(str(s["height"]))
-            except Exception:
-                pass
-        if "ymin" in s:
-            self.ymin.set(str(s["ymin"]))
-        if "ymax" in s:
-            self.ymax.set(str(s["ymax"]))
-        if "y_tick_step" in s:
-            self.y_tick_step.set(str(s["y_tick_step"]))
-        if "plot_type" in s:
-            self.box_orientation.set(str(s["plot_type"]))
-        if "show_outliers" in s:
-            self.show_outliers.set(bool(s["show_outliers"]))
-
-        # Replace data
-        self._boxes.clear()
-        for item in payload.get("series", []):
-            data_arr = item["data"]
-            stats = compute_box_stats(data_arr)
-            self._boxes.append({
-                "kind": "distribution",
-                "data": data_arr,
-                "label": item["label"],
-                "color": item.get("color", COLOR_PALETTE[0][1]),
-                "alpha": float(item.get("alpha", 0.6)),
-                "width": float(item.get("width", 0.8)),
-                "visible": True,
-                "source_key": path + "::" + item["label"],
-                "stats": stats,
-            })
-        self._added_key = None
-        self.add_btn.config(state=tk.NORMAL)
-        self._redraw()
-        fname = path.split("/")[-1].split("\\")[-1]
-        self.status.set(f"Loaded TXT: {fname}  ({len(self._boxes)} items)")
-
-
     def clear_plot(self) -> None:
         self._boxes.clear()
         self.ax.clear()
@@ -408,6 +311,7 @@ class CsvFigApp(tk.Tk):
             "version": 1,
             "type": "csvFIG",
             "settings": {
+                "size_mode": "axes",
                 "plot_title": self.plot_title.get(),
                 "x_label": self.x_label_var.get(),
                 "y_label": self.y_label_var.get(),
@@ -477,7 +381,7 @@ class CsvFigApp(tk.Tk):
             boxes = []
             for b in project.get("boxes", []):
                 if b.get("data") is None:
-                    raise ValueError("This project has no raw observations. Reload the original CSV or TXT file.")
+                    raise ValueError("This project has no raw observations. Reload the original CSV file.")
                 raw = np.asarray(b["data"], dtype=float)
                 if raw.ndim != 1:
                     raise ValueError("Each distribution must be one-dimensional.")
@@ -492,8 +396,9 @@ class CsvFigApp(tk.Tk):
         self.plot_title.set(s.get("plot_title", ""))
         self.x_label_var.set(s.get("x_label", ""))
         self.y_label_var.set(s.get("y_label", ""))
-        self.width_fig.set(s.get("width", "9"))
-        self.height_fig.set(s.get("height", "5.5"))
+        width, height = project_axes_size(s, distribution=True)
+        self.width_fig.set(width)
+        self.height_fig.set(height)
         self.font_name.set(s.get("font_name", DEFAULT_FONT))
         self.font_size.set(s.get("font_size", "12"))
         self.ymin.set(s.get("ymin", ""))
@@ -1025,8 +930,8 @@ class CsvFigApp(tk.Tk):
         try:
             width, height = float(self.width_fig.get()), float(self.height_fig.get())
             font_size = float(self.font_size.get())
-            if width <= 0 or height <= 0 or font_size <= 0:
-                raise ValueError("Figure size and font size must be > 0.")
+            if not np.all(np.isfinite([width, height, font_size])) or min(width, height, font_size) <= 0:
+                raise ValueError("Axes size and font size must be > 0.")
             ymin = self._optional_float(self.ymin, "Y range")
             ymax = self._optional_float(self.ymax, "Y range")
             vertical = self.box_orientation.get() != "Box (H)"
@@ -1052,9 +957,10 @@ class CsvFigApp(tk.Tk):
             if self.grid_y.get():
                 self.ax.grid(True, axis="y", alpha=0.25)
             self.canvas.set_size_inches(width, height)
-            self._reset_axes_layout()
+            self.canvas.legend_location = self.legend_loc.get()
             font = self.font_name.get().strip() or DEFAULT_FONT
-            for item in [self.ax.title, self.ax.xaxis.label, self.ax.yaxis.label]:
+            for item in [self.ax.title, self.ax.xaxis.label, self.ax.yaxis.label,
+                         self.ax.xaxis.offsetText, self.ax.yaxis.offsetText]:
                 item.set_fontfamily(font_family(font))
                 item.set_fontsize(font_size)
             for lbl in self.ax.get_xticklabels() + self.ax.get_yticklabels():
@@ -1097,14 +1003,6 @@ class CsvFigApp(tk.Tk):
         except ValueError as exc:
             if redraw:
                 messagebox.showerror("Invalid Setting", str(exc))
-
-    def _reset_axes_layout(self) -> None:
-        loc = self.legend_loc.get() if self._show_legend.get() else "best"
-        self.figure.subplots_adjust(left=0.12, right=0.78 if loc == "outside right" else 0.94,
-                                    bottom=0.24 if loc == "outside lower" else 0.14,
-                                    top=0.82 if loc == "outside upper" else 0.90)
-        self.canvas.base_bottom = self.figure.subplotpars.bottom
-
 
 if __name__ == "__main__":
     CsvFigApp().mainloop()

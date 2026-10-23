@@ -8,11 +8,14 @@ from tkinter import filedialog, messagebox, ttk
 import matplotlib.colors as mcolors
 import numpy as np
 import pandas as pd
-from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 from matplotlib.figure import Figure
 from _plot_ui import (DEFAULT_FONT, PREVIEW_BACKGROUND,
-                      PlotCanvas, font_family, legend_options, open_figure_settings)
+                      PlotCanvas, PlotToolbar, font_family, legend_options, open_figure_settings,
+                      project_axes_size)
+
 from matplotlib.ticker import FuncFormatter, MaxNLocator, MultipleLocator, ScalarFormatter
+
+DEFAULT_SMOOTH_WINDOW = 25
 
 COLOR_PALETTE = [
     ("Deep Red",    "#A6232F"),
@@ -99,7 +102,7 @@ class CsvPlotterApp(tk.Tk):
         self.x_column = tk.StringVar()
         self.y_column = tk.StringVar()
         self.curve_color = tk.StringVar(value=COLOR_PALETTE[0][1])
-        self.smooth_window = tk.StringVar(value="25")
+        self.smooth_window = tk.StringVar(value=str(DEFAULT_SMOOTH_WINDOW))
         self.hold = tk.BooleanVar(value=False)
         self.width = tk.StringVar(value="9")
         self.height = tk.StringVar(value="5.5")
@@ -165,7 +168,7 @@ class CsvPlotterApp(tk.Tk):
         self.ax = self.figure.add_subplot(111)
         self.plot_area = tk.Frame(chart_frame, background=PREVIEW_BACKGROUND)
         self.canvas = PlotCanvas(self.figure, master=self.plot_area)
-        toolbar = NavigationToolbar2Tk(self.canvas, chart_frame, pack_toolbar=False)
+        toolbar = PlotToolbar(self.canvas, chart_frame, self._open_figure_settings, pack_toolbar=False)
         toolbar.update(); toolbar.pack(side=tk.TOP, fill=tk.X)
         self.plot_area.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
@@ -393,6 +396,7 @@ class CsvPlotterApp(tk.Tk):
             "version": 1,
             "type": "csvPLOT",
             "settings": {
+                "size_mode": "axes",
                 "plot_title": self.plot_title.get(),
                 "width": self.width.get(),
                 "height": self.height.get(),
@@ -475,8 +479,9 @@ class CsvPlotterApp(tk.Tk):
             return
         s = project.get("settings", {})
         self.plot_title.set(s.get("plot_title", ""))
-        self.width.set(s.get("width", "9"))
-        self.height.set(s.get("height", "5.5"))
+        width, height = project_axes_size(s)
+        self.width.set(width)
+        self.height.set(height)
         self.font_name.set(s.get("font_name", DEFAULT_FONT))
         self.font_size.set(s.get("font_size", "12"))
         self.xmin.set(s.get("xmin", ""))
@@ -496,7 +501,7 @@ class CsvPlotterApp(tk.Tk):
         self.orig_alpha.set(s.get("orig_alpha", ORIG_ALPHA))
         self.darken_factor.set(s.get("darken_factor", DARKEN_FACTOR))
         self.smooth_linewidth.set(s.get("smooth_linewidth", 2.4))
-        self.smooth_window.set(s.get("smooth_window", "25"))
+        self.smooth_window.set(s.get("smooth_window", str(DEFAULT_SMOOTH_WINDOW)))
         self.x_column.set(s.get("x_column", ""))
         self.y_column.set(s.get("y_column", ""))
         x_label = s.get("x_label", "")
@@ -869,8 +874,8 @@ class CsvPlotterApp(tk.Tk):
             self.ax.set_title(self.plot_title.get().strip())
             width, height = float(self.width.get()), float(self.height.get())
             font_size = float(self.font_size.get())
-            if width <= 0 or height <= 0 or font_size <= 0:
-                raise ValueError("Figure size and font size must be > 0.")
+            if not np.all(np.isfinite([width, height, font_size])) or min(width, height, font_size) <= 0:
+                raise ValueError("Axes size and font size must be > 0.")
             xmin = self._optional_float(self.xmin, "X range")
             xmax = self._optional_float(self.xmax, "X range")
             ymin = self._optional_float(self.ymin, "Y range")
@@ -895,9 +900,10 @@ class CsvPlotterApp(tk.Tk):
             if self.grid_y.get():
                 self.ax.grid(True, axis="y", alpha=0.25)
             self.canvas.set_size_inches(width, height)
-            self._reset_axes_layout()
+            self.canvas.legend_location = self.legend_loc.get().strip()
             font = self.font_name.get().strip() or DEFAULT_FONT
-            for item in [self.ax.title, self.ax.xaxis.label, self.ax.yaxis.label]:
+            for item in [self.ax.title, self.ax.xaxis.label, self.ax.yaxis.label,
+                         self.ax.xaxis.offsetText, self.ax.yaxis.offsetText]:
                 item.set_fontfamily(font_family(font)); item.set_fontsize(font_size)
             for lbl in self.ax.get_xticklabels() + self.ax.get_yticklabels():
                 lbl.set_fontfamily(font_family(font)); lbl.set_fontsize(font_size)
@@ -955,19 +961,6 @@ class CsvPlotterApp(tk.Tk):
         except ValueError as exc:
             if redraw:
                 messagebox.showerror("Invalid Setting", str(exc))
-
-    def _reset_axes_layout(self) -> None:
-        loc = self.legend_loc.get().strip()
-        if not self.hide_legend.get() and loc == "outside right":
-            self.figure.subplots_adjust(left=0.12, right=0.78, bottom=0.14, top=0.90)
-        elif not self.hide_legend.get() and loc == "outside lower":
-            self.figure.subplots_adjust(left=0.12, right=0.94, bottom=0.22, top=0.90)
-        elif not self.hide_legend.get() and loc == "outside upper":
-            self.figure.subplots_adjust(left=0.12, right=0.94, bottom=0.14, top=0.82)
-        else:
-            self.figure.subplots_adjust(left=0.12, right=0.94, bottom=0.14, top=0.90)
-        self.canvas.base_bottom = self.figure.subplotpars.bottom
-
 
 if __name__ == "__main__":
     CsvPlotterApp().mainloop()

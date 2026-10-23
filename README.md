@@ -5,7 +5,7 @@ csvGUI 包含两个 Tkinter 桌面绘图工具：**csvPLOT** 用于多曲线折�
 | 工具 | 输入 | 图形 | 可编辑项目 |
 | --- | --- | --- | --- |
 | `csvPLOT.py` | CSV | 原始曲线、平滑曲线、多曲线叠加 | `.cplot` |
-| `csvFIG.py` | CSV、结构化 TXT | 纵/横箱线图、柱状误差图、小提琴图、小提琴与箱线组合图 | `.cfig` |
+| `csvFIG.py` | CSV | 纵/横箱线图、柱状误差图、小提琴图、小提琴与箱线组合图 | `.cfig` |
 
 ## 窗口与控件
 
@@ -27,7 +27,7 @@ csvGUI 包含两个 Tkinter 桌面绘图工具：**csvPLOT** 用于多曲线折�
 
 ![画布尺寸与字体设置](docs/screenshots/figure-settings.jpg)
 
-**Canvas & Font** 设置画布宽高、字体与字号。**Axes & Labels** 编辑标题、坐标标签、范围、刻度和网格。**Legend** 选择图例位置、列数和显示方式。
+**Plot Area & Font** 设置坐标区宽高、字体与字号，外围画布自动容纳文字。**Axes & Labels** 编辑标题、坐标标签、范围、刻度和网格。**Legend** 选择图例位置、列数和显示方式。
 
 ![坐标范围与标签设置](docs/screenshots/axes-settings.jpg)
 
@@ -72,7 +72,7 @@ macOS/Linux 通常使用 `python3`，虚拟环境激活命令为 `source .venv/b
 python -m tkinter
 ```
 
-以上命令可以检查 Tkinter。`_plot_ui.py` 应与两个主脚本放在同一目录，`_txt_io.py` 应与 `csvFIG.py` 放在同一目录。
+以上命令可以检查 Tkinter。`_plot_ui.py` 应与两个主脚本放在同一目录。
 
 ## 2. 实验数据与快速绘图
 
@@ -84,7 +84,6 @@ python -m tkinter
 | [experiment_distributions.csv](examples/csvFIG/experiment_distributions.csv) | 5000 行 × 5 列 | 五组高斯混合分布的原始观测 |
 | [curves.csv](examples/curves.csv) | 16 行 × 3 列 | 最小折线示例与回归测试 |
 | [distributions.csv](examples/distributions.csv) | 12 行 × 3 列 | 最小分布示例与回归测试 |
-| [distributions.txt](examples/distributions.txt) | 3 组分布 | 一次导入多组分布的 TXT 示例 |
 
 ### 2.1 五条实验曲线
 
@@ -161,7 +160,7 @@ examples/projects/experiment_distributions.cfig
 
 ### 3.2 平滑与线条样式
 
-平滑为**后向移动平均**：每个点只使用当前点及之前最多 `W-1` 个点，开头不足 `W` 个点时使用已有数据。窗口按数据点数计量。
+平滑为**后向移动平均**：每个点只使用当前点及之前最多 `W-1` 个点，开头不足 `W` 个点时使用已有数据。窗口按数据点数计量，**新建窗口默认值为 25**。打开项目时恢复项目中保存的平滑窗口；旧项目未记录时使用 25。
 
 | 控件 | 功能 |
 | --- | --- |
@@ -184,7 +183,7 @@ examples/projects/experiment_distributions.cfig
 | --- | --- |
 | **Columns** | 图例列数 |
 | **Location** | 自动位置 `best`，或图内上、下、左、右、中心等位置 |
-| **outside upper / lower / right** | 将图例放在坐标区外侧，并预留相应画布边距 |
+| **outside upper / lower / right** | 将图例放在坐标区外侧，避开坐标标签和标题，并自动扩展画布边距 |
 | **Hide all legends** | 隐藏整个图例 |
 | **Hide original data legends** | 隐藏原始线对应的图例项，保留平滑线图例项 |
 
@@ -196,28 +195,9 @@ examples/projects/experiment_distributions.cfig
 
 **Load CSV** 读取带表头的 CSV，**Data Column** 选择一列原始观测，过滤非数值、缺失值和无穷值。**Add Data** 添加数据，**Hold** 保留已有分组，**Clear** 清空画布。
 
+导入区与 csvPLOT 一致：上方为整行 **Load CSV**，下一行为 **Save Project / Open Project**。
+
 **Label (display name)** 设置添加时的标签。已添加分组的标签和颜色可以在高级设置中修改。程序防止连续重复添加当前列；添加其他组时切换数据列，或清空后重新开始。
-
-**Load TXT** 可一次读取多个分布，格式示例：
-
-```text
-title: Distribution comparison
-x_label: Group
-y_label: Value
-plot_type: Violin+Box
-
-series:
-  Group A:
-    color: #2855A6
-    alpha: 0.6
-    width: 0.8
-    y: [1.1, 1.4, 1.8, 2.0, 2.2]
-  Group B:
-    color: #A6232F
-    y: [2.1, 2.5, 2.9, 3.0, 3.4]
-```
-
-TXT 用缩进区分数据组，`y` 保存原始观测，独立的 `#` 开头行可写注释。大样本的常规演示直接使用 CSV 即可。
 
 ### 4.2 图形类型
 
@@ -260,7 +240,7 @@ csvFIG 的图例显示各组颜色及名称，还可以说明中位数、均值�
 
 | 控件 | 功能 |
 | --- | --- |
-| **Width / Height (inches)** | 图形宽高，单位英寸，默认 `9×5.5`，必须为正数 |
+| **Axes Width / Axes Height (inches)** | 坐标区内部宽高，单位英寸，默认 `9×5.5`，必须为正数；不包含刻度、标签、标题和图例 |
 | **Font / Font Size** | 标题、坐标标签和刻度字体与字号，字号必须为正数 |
 | **X Axis: min—step—max** | csvPLOT 的 X 范围与固定主刻度间隔 |
 | **Y Axis: min—step—max** | 两个工具的数值轴范围与固定主刻度间隔 |
@@ -275,7 +255,11 @@ csvFIG 的图例显示各组颜色及名称，还可以说明中位数、均值�
 
 TimesSimSun 的用户提供来源为公众号 **阿昆的科研日常**，[原文链接](https://mp.weixin.qq.com/s/Z--wuiasKW90wUn2dsC5kw)。本地副本已接入字体；公开仓库不包含字体二进制，获取来源不等于原字体的再分发许可，详见 [fonts/README.md](fonts/README.md)。
 
-调整画布尺寸后只保留当前图像，空余区域使用灰色背景。画布大于显示区域时按比例缩小预览，导出仍保留指定的英寸尺寸和原始 DPI。
+坐标区是坐标轴边框以内的数据绘制区域。程序按字体和字号测量刻度、轴标签、标题及图例，在四周自动增加画布空间，保持指定的坐标区宽高；长横轴刻度标签重叠时自动倾斜。缩小坐标区或增大字号时，文字仍会被纳入画布；减小字号或缩短文字后，多余边距也会收回。
+
+例如设置 `Axes Width=4`、`Axes Height=3`，导出图中的坐标区为 `4×3` 英寸，完整图片会更大，具体大小随文字与图例变化。外置图例会排列在坐标标签和标题之外。很密集的标签仍可通过加宽坐标区、缩短标签或减小字号来改善相互遮挡。
+
+调整尺寸后只保留当前图像，空余区域使用灰色背景。完整画布大于显示区域时按比例缩小预览，导出仍保留指定的坐标区英寸尺寸和原始 DPI。
 
 ### 5.2 工具栏
 
@@ -285,10 +269,10 @@ TimesSimSun 的用户提供来源为公众号 **阿昆的科研日常**，[原�
 | **Back / Forward** | 切换视图历史 |
 | **Pan** | 拖动平移 |
 | **Zoom** | 框选放大局部区域 |
-| **Subplots** | 调整坐标区边距和布局参数 |
+| **Subplots** | 打开同一个 Figure & Axes 弹窗，设置坐标区大小、文字与图例 |
 | **Save** | 导出当前图形 |
 
-交互缩放不修改 CSV 数据。重新绘图或应用设置时可能重算布局，建议完成数据和样式设置后，再进行最后的工具栏布局调整并导出。
+交互缩放不修改 CSV 数据。平移、缩放或修改设置后，程序会自动重算外围边距，导出时也会使用当前布局。
 
 ## 6. 色卡与自定义颜色
 
@@ -318,7 +302,7 @@ TimesSimSun 的用户提供来源为公众号 **阿昆的科研日常**，[原�
 | 矢量图 | PDF、SVG/SVGZ | 论文和后续排版，保留文字及线条缩放能力 |
 | PostScript | EPS、PS | 需要这些格式的排版流程 |
 
-界面没有单独的导出 DPI 输入框，默认导出按初始 100 DPI 和指定英寸尺寸生成，预览缩放不会降低导出尺寸。JPEG 不保留透明背景，EPS/PS 不完整支持透明度。需要透明效果时可使用 PNG、PDF 或 SVG。工具栏还可能提供 PGF、RAW/RGBA 等格式，其中 PGF 通常需要本机 TeX 环境。
+界面没有单独的导出 DPI 输入框，默认导出按初始 100 DPI 生成，完整图片像素尺寸取决于指定的坐标区大小及自动测得的外围边距，预览缩放不会降低导出尺寸。JPEG 不保留透明背景，EPS/PS 不完整支持透明度。需要透明效果时可使用 PNG、PDF 或 SVG。工具栏还可能提供 PGF、RAW/RGBA 等格式，其中 PGF 通常需要本机 TeX 环境。
 
 ### 7.2 可编辑项目
 
@@ -331,7 +315,7 @@ TimesSimSun 的用户提供来源为公众号 **阿昆的科研日常**，[原�
 | 设置 | 标题、轴标签、范围、步长、字体、网格、图例布局 | 标题、轴标签、数值轴设置、字体、网格、统计元素选项 |
 | 继续编辑 | 修改平滑窗口后统一重算 | 重新计算统计值并切换图形类型 |
 
-项目文件使用 JSON，包含已绘制的数据，不依赖原 CSV 路径。工具栏的临时缩放历史、临时子图布局等并非全部持久化，需保存的范围建议写入 Figure & Axes 弹窗。
+项目文件使用 JSON，包含已绘制的数据，不依赖原 CSV 路径。工具栏的临时缩放历史不会持久化，需保存的范围建议写入 Figure & Axes 弹窗。
 
 导出的图片不能通过 Open Project 恢复为可编辑项目。项目扩展名统一使用小写 `.cplot`、`.cfig`。
 
@@ -387,7 +371,6 @@ offset = [0, 0.4, 0.8] rad
 ```text
 csvPLOT.py                    折线图工具
 csvFIG.py                     分布图工具
-_txt_io.py                    TXT 读取模块
 _plot_ui.py                   字体、画布与设置弹窗
 fonts/                        本地字体与来源说明
 docs/screenshots/             实际窗口与控件截图
@@ -397,7 +380,6 @@ LICENSE                       MIT 许可证
 examples/
   curves.csv                  小样本折线数据
   distributions.csv           小样本分布数据
-  distributions.txt           多组分布 TXT
   generate_examples.py        大样本数据生成器
   dataset_metadata.json       种子、参数、SNR 和摘要
   csvPLOT/
@@ -425,7 +407,6 @@ GUI 测试需要显示环境，无显示服务器的 Linux 环境需使用虚拟
 | 想调整图例位置 | 打开 Figure & Axes → Legend，选择 best 或指定位置 |
 | 不能连续添加当前列 | 切换其他列或清空重绘 |
 | 想查看数值轴局部 | 修改 Figure & Axes 范围或使用 Zoom |
-| TXT 导入不可用 | 确认 `_txt_io.py` 与 csvFIG 在同一目录 |
 
 ## 10. 版本范围与许可证
 
@@ -433,6 +414,8 @@ GUI 测试需要显示环境，无显示服务器的 Linux 环境需使用虚拟
 
 普通 v1 `.cplot` 可继续打开，旧 LP 配置不再执行，已经保存在数据数组中的结果作为普通曲线读取。新项目记录日期和文本 X 轴的类型。
 
-`.cfig` 必须包含原始观测，载入后重算统计值。仅有汇总值的旧项目需重新导入 CSV/TXT；手工修改的统计值不会覆盖原始观测，已经保存在观测数组中的映射结果作为普通数据读取。
+新项目在设置中记录 `size_mode: axes`，宽高表示坐标区尺寸。旧项目的宽高表示完整画布，打开时会按原布局比例换算为坐标区尺寸，再自动容纳文字；保存后使用新的尺寸含义。
+
+`.cfig` 必须包含原始观测，载入后重算统计值。仅有汇总值的旧项目需重新导入 CSV；手工修改的统计值不会覆盖原始观测，已经保存在观测数组中的映射结果作为普通数据读取。
 
 采用 [MIT 许可证](LICENSE)。源代码仓库：[lbsun1999/csvGUI](https://github.com/lbsun1999/csvGUI)。
