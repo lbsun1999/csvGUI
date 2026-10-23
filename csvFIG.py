@@ -10,9 +10,11 @@ from tkinter import colorchooser, filedialog, messagebox, ttk
 import matplotlib.colors as mcolors
 import numpy as np
 import pandas as pd
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 from matplotlib.cbook import boxplot_stats
 from matplotlib.figure import Figure
+from _plot_ui import (DEFAULT_FONT, PREVIEW_BACKGROUND,
+                      PlotCanvas, font_family, legend_options, open_figure_settings)
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 from matplotlib.ticker import FuncFormatter, MultipleLocator
@@ -94,7 +96,7 @@ class CsvFigApp(tk.Tk):
         self.hold = tk.BooleanVar(value=False)
         self.width_fig = tk.StringVar(value="9")
         self.height_fig = tk.StringVar(value="5.5")
-        self.font_name = tk.StringVar(value="DejaVu Sans")
+        self.font_name = tk.StringVar(value=DEFAULT_FONT)
         self.font_size = tk.StringVar(value="12")
         self.ymin = tk.StringVar()
         self.ymax = tk.StringVar()
@@ -111,6 +113,9 @@ class CsvFigApp(tk.Tk):
         self._median_linestyle = tk.StringVar(value="solid")
         self._median_marker_size = tk.DoubleVar(value=6.0)
         self._show_legend = tk.BooleanVar(value=False)
+        self.legend_loc = tk.StringVar(value="best")
+        self.legend_ncol = tk.IntVar(value=1)
+        self._edge_mode_text = tk.StringVar(value="Edges: Color")
         self._boxes: list[dict] = []
         self._added_key: str | None = None
         if _HAS_TXT:
@@ -126,30 +131,11 @@ class CsvFigApp(tk.Tk):
         self._median_marker_size.trace_add("write", lambda *_: self._redraw() if self._boxes else None)
 
     def _build_ui(self) -> None:
-        # Left sidebar with scroll
-        sidebar = ttk.Frame(self, width=310)
+        sidebar = ttk.Frame(self, width=290)
         sidebar.pack(side=tk.LEFT, fill=tk.Y)
         sidebar.pack_propagate(False)
-
-        scroll_canvas = tk.Canvas(sidebar, highlightthickness=0)
-        vbar = ttk.Scrollbar(sidebar, orient=tk.VERTICAL, command=scroll_canvas.yview)
-        scroll_canvas.configure(yscrollcommand=vbar.set)
-        vbar.pack(side=tk.RIGHT, fill=tk.Y)
-        scroll_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
-        controls = ttk.Frame(scroll_canvas, padding=10)
-        controls_win = scroll_canvas.create_window((0, 0), window=controls, anchor="nw")
-
-        def _on_inner(_=None):
-            scroll_canvas.configure(scrollregion=scroll_canvas.bbox("all"))
-        def _on_canvas(event):
-            scroll_canvas.itemconfig(controls_win, width=event.width)
-        def _on_wheel(event):
-            scroll_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-
-        controls.bind("<Configure>", _on_inner)
-        scroll_canvas.bind("<Configure>", _on_canvas)
-        self.bind("<MouseWheel>", _on_wheel)
+        controls = ttk.Frame(sidebar, padding=10)
+        controls.pack(fill=tk.BOTH, expand=True)
 
         chart_frame = ttk.Frame(self, padding=(0, 10, 10, 10))
         chart_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
@@ -160,10 +146,9 @@ class CsvFigApp(tk.Tk):
         row2 = ttk.Frame(controls); row2.pack(fill=tk.X)
         ttk.Button(row2, text="Save Project", command=self.save_project).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(0, 3))
         ttk.Button(row2, text="Open Project", command=self.load_project).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(3, 0))
-        ttk.Label(controls, textvariable=self.status, wraplength=260, foreground="#555").pack(fill=tk.X, pady=(5, 12))
 
         box_frame = ttk.LabelFrame(controls, text="Data & Style", padding=8)
-        box_frame.pack(fill=tk.X, pady=(0, 8))
+        box_frame.pack(fill=tk.X, pady=(8, 8))
         ttk.Label(box_frame, text="Data Column").pack(anchor=tk.W, pady=(4, 0))
         self.col_combo = ttk.Combobox(box_frame, textvariable=self.column, state="readonly")
         self.col_combo.pack(fill=tk.X)
@@ -179,22 +164,9 @@ class CsvFigApp(tk.Tk):
                      state="readonly")
         pt_combo.pack(fill=tk.X)
         pt_combo.bind("<<ComboboxSelected>>", lambda e: self._redraw())
-        ttk.Checkbutton(box_frame, text="Show outliers (Box)", variable=self.show_outliers).pack(anchor=tk.W, pady=(4, 0))
+        ttk.Checkbutton(box_frame, text="Show outliers (Box)", variable=self.show_outliers, command=self._redraw).pack(anchor=tk.W, pady=(4, 0))
         ttk.Checkbutton(box_frame, text="Show legend", variable=self._show_legend,
                         command=self._redraw).pack(anchor=tk.W, pady=(2, 0))
-        ttk.Checkbutton(box_frame, text="Connect medians", variable=self._connect_medians,
-                        command=self._redraw).pack(anchor=tk.W, pady=(4, 0))
-        ttk.Checkbutton(box_frame, text="Connect means", variable=self._connect_means,
-                        command=self._redraw).pack(anchor=tk.W, pady=(2, 0))
-        ttk.Label(box_frame, text="Median Line Style").pack(anchor=tk.W, pady=(4, 0))
-        ttk.Combobox(box_frame, textvariable=self._median_linestyle,
-                     values=["solid", "dashed", "dashdot", "dotted", "none"],
-                     state="readonly").pack(fill=tk.X)
-        self._slider_row(box_frame, "Median Marker Size", self._median_marker_size, 0, 15, "{:.0f}")
-        self._slider_row(box_frame, "Edge / Line Width", self._edge_lw, 0.5, 5.0, "{:.1f}")
-        self._black_edges_btn = ttk.Button(box_frame, text="Edges: Color",
-                                           command=self._toggle_black_edges)
-        self._black_edges_btn.pack(fill=tk.X, pady=(2, 4))
         ttk.Checkbutton(box_frame, text="Hold: keep existing data", variable=self.hold).pack(anchor=tk.W, pady=(4, 2))
         btn_row = ttk.Frame(box_frame)
         btn_row.pack(fill=tk.X, pady=(5, 0))
@@ -202,39 +174,21 @@ class CsvFigApp(tk.Tk):
         self.add_btn.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(0, 3))
         ttk.Button(btn_row, text="Clear", command=self.clear_plot).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(3, 0))
 
-        appearance = ttk.LabelFrame(controls, text="Figure & Axes", padding=8)
-        appearance.pack(fill=tk.X)
-        self._entry(appearance, "Width (inches)", self.width_fig)
-        self._entry(appearance, "Height (inches)", self.height_fig)
-        ttk.Label(appearance, text="Font").pack(anchor=tk.W, pady=(4, 0))
-        ttk.Combobox(appearance, textvariable=self.font_name,
-                     values=["DejaVu Sans", "Times New Roman", "STIX", "Cambria",
-                             "XITS Math", "cmr10", "Palatino Linotype", "Georgia",
-                             "DejaVu Serif", "Microsoft YaHei",
-                             "SimHei", "SimSun", "Noto Serif SC", "Source Han Serif CN"],
-                     state="readonly").pack(fill=tk.X)
-        self._entry(appearance, "Font Size", self.font_size)
-        ttk.Label(appearance, text="Y Axis  (min — step — max, blank=auto)").pack(anchor=tk.W, pady=(5, 0))
-        row = ttk.Frame(appearance)
-        row.pack(fill=tk.X, pady=(1, 2))
-        ttk.Entry(row, textvariable=self.ymin, width=8).pack(side=tk.LEFT, expand=True, fill=tk.X)
-        ttk.Label(row, text=" — ").pack(side=tk.LEFT)
-        ttk.Entry(row, textvariable=self.y_tick_step, width=8).pack(side=tk.LEFT, expand=True, fill=tk.X)
-        ttk.Label(row, text=" — ").pack(side=tk.LEFT)
-        ttk.Entry(row, textvariable=self.ymax, width=8).pack(side=tk.LEFT, expand=True, fill=tk.X)
-        ttk.Checkbutton(appearance, text="Hide last Y tick", variable=self.hide_last_ytick).pack(anchor=tk.W, pady=(0, 7))
-        ttk.Button(appearance, text="Apply Figure Settings",
-                   command=lambda: self._apply_appearance(from_user=True)).pack(fill=tk.X, pady=(0, 4))
-        ttk.Button(appearance, text="Advanced Settings…", command=self._open_advanced).pack(fill=tk.X)
+        ttk.Button(controls, text="Figure & Axes...", command=self._open_figure_settings).pack(fill=tk.X, pady=(4, 4))
+        ttk.Button(controls, text="Advanced Settings...", command=self._open_advanced).pack(fill=tk.X)
 
         self.figure = Figure(figsize=(9, 5.5), dpi=100)
-        self.figure.set_tight_layout(False)
+        self.figure.set_layout_engine("none")
         self.ax = self.figure.add_subplot(111)
-        self.canvas = FigureCanvasTkAgg(self.figure, master=chart_frame)
+        self.plot_area = tk.Frame(chart_frame, background=PREVIEW_BACKGROUND)
+        self.canvas = PlotCanvas(self.figure, master=self.plot_area)
         toolbar = NavigationToolbar2Tk(self.canvas, chart_frame, pack_toolbar=False)
         toolbar.update()
         toolbar.pack(side=tk.TOP, fill=tk.X)
-        self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        self.plot_area.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+    def _open_figure_settings(self):
+        return open_figure_settings(self, distribution=True)
 
     def _color_combo(self, parent: ttk.Widget, label: str, variable: tk.StringVar) -> None:
         ttk.Label(parent, text=label).pack(anchor=tk.W, pady=(4, 0))
@@ -271,7 +225,7 @@ class CsvFigApp(tk.Tk):
     def _toggle_black_edges(self) -> None:
         cur = not self._black_edges.get()
         self._black_edges.set(cur)
-        self._black_edges_btn.config(text="Edges: Black" if cur else "Edges: Color")
+        self._edge_mode_text.set("Edges: Black" if cur else "Edges: Color")
         self._redraw()
 
     def _edge_color(self, b: dict) -> str:
@@ -476,6 +430,8 @@ class CsvFigApp(tk.Tk):
                 "median_linestyle": self._median_linestyle.get(),
                 "median_marker_size": self._median_marker_size.get(),
                 "show_legend": self._show_legend.get(),
+                "legend_loc": self.legend_loc.get(),
+                "legend_ncol": self.legend_ncol.get(),
                 "box_width": self.box_width.get(),
             },
             "boxes": [],
@@ -538,7 +494,7 @@ class CsvFigApp(tk.Tk):
         self.y_label_var.set(s.get("y_label", ""))
         self.width_fig.set(s.get("width", "9"))
         self.height_fig.set(s.get("height", "5.5"))
-        self.font_name.set(s.get("font_name", "DejaVu Sans"))
+        self.font_name.set(s.get("font_name", DEFAULT_FONT))
         self.font_size.set(s.get("font_size", "12"))
         self.ymin.set(s.get("ymin", ""))
         self.ymax.set(s.get("ymax", ""))
@@ -552,10 +508,12 @@ class CsvFigApp(tk.Tk):
         self._connect_means.set(s.get("connect_means", False))
         self._edge_lw.set(s.get("edge_lw", 1.5))
         self._black_edges.set(s.get("black_edges", False))
-        self._black_edges_btn.config(text="Edges: Black" if self._black_edges.get() else "Edges: Color")
+        self._edge_mode_text.set("Edges: Black" if self._black_edges.get() else "Edges: Color")
         self._median_linestyle.set(s.get("median_linestyle", "solid"))
         self._median_marker_size.set(s.get("median_marker_size", 6.0))
         self._show_legend.set(s.get("show_legend", False))
+        self.legend_loc.set(s.get("legend_loc", "best"))
+        self.legend_ncol.set(s.get("legend_ncol", 1))
         self.box_width.set(s.get("box_width", 0.8))
         self._boxes.clear()
         for b in boxes:
@@ -582,7 +540,10 @@ class CsvFigApp(tk.Tk):
         plot_type = self.box_orientation.get()
         visible = [b for b in self._boxes if b.get("visible", True)]
         if not visible:
-            self.canvas.draw()
+            self.ax.set_title(self.plot_title.get())
+            self.ax.set_xlabel(self.x_label_var.get())
+            self.ax.set_ylabel(self.y_label_var.get())
+            self._apply_appearance()
             return
         positions = list(range(1, len(visible) + 1))
         labels = [b["label"] for b in visible]
@@ -605,7 +566,8 @@ class CsvFigApp(tk.Tk):
             self._draw_stat_connection(positions, means, "^", plot_type == "Box (H)")
 
         if self._show_legend.get():
-            handles = []
+            handles = [Patch(facecolor=mcolors.to_rgba(b["color"], alpha=b.get("alpha", 0.6)),
+                             edgecolor=self._edge_color(b), label=b["label"]) for b in visible]
             ms = self._median_marker_size.get()
             ls = self._median_linestyle.get()
             if self._connect_medians.get() and len(visible) > 1:
@@ -634,8 +596,9 @@ class CsvFigApp(tk.Tk):
                                       markeredgecolor="#555555",
                                       label="Outliers"))
             if handles:
-                self.ax.legend(handles=handles, loc="upper right",
-                               framealpha=0.9, fontsize=int(self.font_size.get()))
+                self.ax.legend(handles=handles, ncol=max(1, self.legend_ncol.get()),
+                               framealpha=0.9, fontsize=float(self.font_size.get()),
+                               **legend_options(self.legend_loc.get()))
 
         if self.plot_title.get().strip():
             self.ax.set_title(self.plot_title.get().strip())
@@ -865,6 +828,22 @@ class CsvFigApp(tk.Tk):
         ttk.Checkbutton(grid_frame, text="Vertical (X)", variable=self.grid_x).pack(side=tk.LEFT, padx=(0, 12))
         ttk.Checkbutton(grid_frame, text="Horizontal (Y)", variable=self.grid_y).pack(side=tk.LEFT)
 
+        detail_style = ttk.LabelFrame(inner, text="Distribution Style", padding=8)
+        detail_style.pack(fill=tk.X, padx=12, pady=(8, 8))
+        ttk.Checkbutton(detail_style, text="Connect medians", variable=self._connect_medians,
+                        command=self._redraw).pack(anchor=tk.W, pady=(4, 0))
+        ttk.Checkbutton(detail_style, text="Connect means", variable=self._connect_means,
+                        command=self._redraw).pack(anchor=tk.W, pady=(2, 0))
+        ttk.Label(detail_style, text="Median Line Style").pack(anchor=tk.W, pady=(4, 0))
+        ttk.Combobox(detail_style, textvariable=self._median_linestyle,
+                     values=["solid", "dashed", "dashdot", "dotted", "none"],
+                     state="readonly").pack(fill=tk.X)
+        self._slider_row(detail_style, "Median Marker Size", self._median_marker_size, 0, 15, "{:.0f}")
+        self._slider_row(detail_style, "Edge / Line Width", self._edge_lw, 0.5, 5.0, "{:.1f}")
+        self._black_edges_btn = ttk.Button(detail_style, textvariable=self._edge_mode_text,
+                                           command=self._toggle_black_edges)
+        self._black_edges_btn.pack(fill=tk.X, pady=(2, 4))
+
         # Global alpha
         ttk.Label(inner, text="Global Box Alpha (0 = transparent, 1 = opaque)").pack(anchor=tk.W, pady=(6, 2))
         alpha_row = ttk.Frame(inner)
@@ -1044,13 +1023,6 @@ class CsvFigApp(tk.Tk):
 
     def _apply_appearance(self, redraw: bool = True, from_user: bool = False) -> None:
         try:
-            # Only update last-box label when user explicitly clicks Apply from main panel
-            if from_user and self._boxes:
-                new_label = self.box_label.get().strip()
-                if new_label and new_label != self._boxes[-1]["label"]:
-                    self._boxes[-1]["label"] = new_label
-                    self._redraw()
-                    return
             width, height = float(self.width_fig.get()), float(self.height_fig.get())
             font_size = float(self.font_size.get())
             if width <= 0 or height <= 0 or font_size <= 0:
@@ -1079,19 +1051,19 @@ class CsvFigApp(tk.Tk):
                 self.ax.grid(True, axis="x", alpha=0.25)
             if self.grid_y.get():
                 self.ax.grid(True, axis="y", alpha=0.25)
-            self.figure.set_size_inches(width, height, forward=True)
+            self.canvas.set_size_inches(width, height)
             self._reset_axes_layout()
-            font = self.font_name.get().strip() or "DejaVu Sans"
+            font = self.font_name.get().strip() or DEFAULT_FONT
             for item in [self.ax.title, self.ax.xaxis.label, self.ax.yaxis.label]:
-                item.set_fontname(font)
+                item.set_fontfamily(font_family(font))
                 item.set_fontsize(font_size)
             for lbl in self.ax.get_xticklabels() + self.ax.get_yticklabels():
-                lbl.set_fontname(font)
+                lbl.set_fontfamily(font_family(font))
                 lbl.set_fontsize(font_size)
             legend = self.ax.get_legend()
             if legend:
                 for text in legend.get_texts():
-                    text.set_fontname(font)
+                    text.set_fontfamily(font_family(font))
                     text.set_fontsize(font_size * 0.9)
             if redraw:
                 self.canvas.draw()
@@ -1127,7 +1099,11 @@ class CsvFigApp(tk.Tk):
                 messagebox.showerror("Invalid Setting", str(exc))
 
     def _reset_axes_layout(self) -> None:
-        self.figure.subplots_adjust(left=0.12, right=0.94, bottom=0.14, top=0.90)
+        loc = self.legend_loc.get() if self._show_legend.get() else "best"
+        self.figure.subplots_adjust(left=0.12, right=0.78 if loc == "outside right" else 0.94,
+                                    bottom=0.24 if loc == "outside lower" else 0.14,
+                                    top=0.82 if loc == "outside upper" else 0.90)
+        self.canvas.base_bottom = self.figure.subplotpars.bottom
 
 
 if __name__ == "__main__":

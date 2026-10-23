@@ -10,3 +10,6 @@ Thumbs.db
 build/
 dist/
 *.egg-info/
+fonts/*.ttf
+fonts/*.otf
+fonts/*.ttc

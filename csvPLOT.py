@@ -8,8 +8,10 @@ from tkinter import filedialog, messagebox, ttk
 import matplotlib.colors as mcolors
 import numpy as np
 import pandas as pd
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 from matplotlib.figure import Figure
+from _plot_ui import (DEFAULT_FONT, PREVIEW_BACKGROUND,
+                      PlotCanvas, font_family, legend_options, open_figure_settings)
 from matplotlib.ticker import FuncFormatter, MaxNLocator, MultipleLocator, ScalarFormatter
 
 COLOR_PALETTE = [
@@ -101,7 +103,7 @@ class CsvPlotterApp(tk.Tk):
         self.hold = tk.BooleanVar(value=False)
         self.width = tk.StringVar(value="9")
         self.height = tk.StringVar(value="5.5")
-        self.font_name = tk.StringVar(value="DejaVu Sans")
+        self.font_name = tk.StringVar(value=DEFAULT_FONT)
         self.font_size = tk.StringVar(value="12")
         self.xmin = tk.StringVar()
         self.xmax = tk.StringVar()
@@ -128,30 +130,11 @@ class CsvPlotterApp(tk.Tk):
         self._orig_y_fmt: object = None
 
     def _build_ui(self) -> None:
-        # Left sidebar with scroll
-        sidebar = ttk.Frame(self, width=310)
+        sidebar = ttk.Frame(self, width=290)
         sidebar.pack(side=tk.LEFT, fill=tk.Y)
         sidebar.pack_propagate(False)
-
-        scroll_canvas = tk.Canvas(sidebar, highlightthickness=0)
-        vbar = ttk.Scrollbar(sidebar, orient=tk.VERTICAL, command=scroll_canvas.yview)
-        scroll_canvas.configure(yscrollcommand=vbar.set)
-        vbar.pack(side=tk.RIGHT, fill=tk.Y)
-        scroll_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
-        controls = ttk.Frame(scroll_canvas, padding=10)
-        controls_win = scroll_canvas.create_window((0, 0), window=controls, anchor="nw")
-
-        def _on_inner(_=None):
-            scroll_canvas.configure(scrollregion=scroll_canvas.bbox("all"))
-        def _on_canvas(event):
-            scroll_canvas.itemconfig(controls_win, width=event.width)
-        def _on_wheel(event):
-            scroll_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-
-        controls.bind("<Configure>", _on_inner)
-        scroll_canvas.bind("<Configure>", _on_canvas)
-        self.bind("<MouseWheel>", _on_wheel)
+        controls = ttk.Frame(sidebar, padding=10)
+        controls.pack(fill=tk.BOTH, expand=True)
 
         chart_frame = ttk.Frame(self, padding=(0, 10, 10, 10))
         chart_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
@@ -160,10 +143,9 @@ class CsvPlotterApp(tk.Tk):
         proj_row = ttk.Frame(controls); proj_row.pack(fill=tk.X, pady=(4, 0))
         ttk.Button(proj_row, text="Save Project", command=self.save_project).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(0, 3))
         ttk.Button(proj_row, text="Open Project", command=self.load_project).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(3, 0))
-        ttk.Label(controls, textvariable=self.status, wraplength=260, foreground="#555").pack(fill=tk.X, pady=(5, 12))
 
         curve = ttk.LabelFrame(controls, text="Curve Data & Style", padding=8)
-        curve.pack(fill=tk.X, pady=(0, 8))
+        curve.pack(fill=tk.X, pady=(8, 8))
         self._combo(curve, "X Column", self.x_column)
         self._combo(curve, "Y Column", self.y_column)
         self._color_combo(curve, "Curve Color", self.curve_color)
@@ -175,46 +157,17 @@ class CsvPlotterApp(tk.Tk):
         ttk.Button(curve, text="Re-smooth All Curves (global window)",
                    command=self.resmooth_all).pack(fill=tk.X, pady=(6, 0))
 
-        appearance = ttk.LabelFrame(controls, text="Figure & Axes", padding=8)
-        appearance.pack(fill=tk.X)
-        self._entry(appearance, "Width (inches)", self.width)
-        self._entry(appearance, "Height (inches)", self.height)
-        ttk.Label(appearance, text="Font").pack(anchor=tk.W, pady=(4, 0))
-        ttk.Combobox(appearance, textvariable=self.font_name,
-                     values=["DejaVu Sans", "Times New Roman",
-                             "STIX", "Cambria", "XITS Math",
-                             "cmr10", "Palatino Linotype", "Georgia",
-                             "DejaVu Serif",
-                             "Microsoft YaHei", "SimHei", "SimSun",
-                             "Noto Serif SC", "Source Han Serif CN"],
-                     state="readonly").pack(fill=tk.X)
-        self._entry(appearance, "Font Size", self.font_size)
-        ttk.Label(appearance, text="X Axis  (min — step — max, blank=auto)").pack(anchor=tk.W, pady=(5, 0))
-        row = ttk.Frame(appearance); row.pack(fill=tk.X, pady=(1, 2))
-        ttk.Entry(row, textvariable=self.xmin, width=8).pack(side=tk.LEFT, expand=True, fill=tk.X)
-        ttk.Label(row, text=" — ").pack(side=tk.LEFT)
-        ttk.Entry(row, textvariable=self.x_tick_step, width=8).pack(side=tk.LEFT, expand=True, fill=tk.X)
-        ttk.Label(row, text=" — ").pack(side=tk.LEFT)
-        ttk.Entry(row, textvariable=self.xmax, width=8).pack(side=tk.LEFT, expand=True, fill=tk.X)
-        ttk.Checkbutton(appearance, text="Hide last X tick", variable=self.hide_last_xtick).pack(anchor=tk.W, pady=(0, 4))
-        ttk.Label(appearance, text="Y Axis  (min — step — max, blank=auto)").pack(anchor=tk.W)
-        row = ttk.Frame(appearance); row.pack(fill=tk.X, pady=(1, 2))
-        ttk.Entry(row, textvariable=self.ymin, width=8).pack(side=tk.LEFT, expand=True, fill=tk.X)
-        ttk.Label(row, text=" — ").pack(side=tk.LEFT)
-        ttk.Entry(row, textvariable=self.y_tick_step, width=8).pack(side=tk.LEFT, expand=True, fill=tk.X)
-        ttk.Label(row, text=" — ").pack(side=tk.LEFT)
-        ttk.Entry(row, textvariable=self.ymax, width=8).pack(side=tk.LEFT, expand=True, fill=tk.X)
-        ttk.Checkbutton(appearance, text="Hide last Y tick", variable=self.hide_last_ytick).pack(anchor=tk.W, pady=(0, 7))
-        ttk.Button(appearance, text="Apply Figure Settings", command=self._apply_appearance).pack(fill=tk.X, pady=(0, 4))
-        ttk.Button(appearance, text="Advanced Settings…", command=self._open_advanced).pack(fill=tk.X)
+        ttk.Button(controls, text="Figure & Axes...", command=self._open_figure_settings).pack(fill=tk.X, pady=(4, 4))
+        ttk.Button(controls, text="Advanced Settings...", command=self._open_advanced).pack(fill=tk.X)
 
         self.figure = Figure(figsize=(9, 5.5), dpi=100)
-        self.figure.set_tight_layout(False)
+        self.figure.set_layout_engine("none")
         self.ax = self.figure.add_subplot(111)
-        self.canvas = FigureCanvasTkAgg(self.figure, master=chart_frame)
+        self.plot_area = tk.Frame(chart_frame, background=PREVIEW_BACKGROUND)
+        self.canvas = PlotCanvas(self.figure, master=self.plot_area)
         toolbar = NavigationToolbar2Tk(self.canvas, chart_frame, pack_toolbar=False)
         toolbar.update(); toolbar.pack(side=tk.TOP, fill=tk.X)
-        self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        self.plot_area.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
     def _combo(self, parent: ttk.Widget, label: str, variable: tk.StringVar) -> None:
         ttk.Label(parent, text=label).pack(anchor=tk.W, pady=(4, 0))
@@ -224,6 +177,9 @@ class CsvPlotterApp(tk.Tk):
             self.x_combo = combo
         else:
             self.y_combo = combo
+
+    def _open_figure_settings(self):
+        return open_figure_settings(self, distribution=False)
 
     def _color_combo(self, parent: ttk.Widget, label: str, variable: tk.StringVar) -> None:
         ttk.Label(parent, text=label).pack(anchor=tk.W, pady=(4, 0))
@@ -521,7 +477,7 @@ class CsvPlotterApp(tk.Tk):
         self.plot_title.set(s.get("plot_title", ""))
         self.width.set(s.get("width", "9"))
         self.height.set(s.get("height", "5.5"))
-        self.font_name.set(s.get("font_name", "DejaVu Sans"))
+        self.font_name.set(s.get("font_name", DEFAULT_FONT))
         self.font_size.set(s.get("font_size", "12"))
         self.xmin.set(s.get("xmin", ""))
         self.xmax.set(s.get("xmax", ""))
@@ -636,16 +592,7 @@ class CsvPlotterApp(tk.Tk):
         if legend_handles:
             loc = self.legend_loc.get().strip() or "best"
             ncol = max(1, self.legend_ncol.get())
-            kwargs = {"loc": loc, "ncol": ncol}
-            if loc.startswith("outside "):
-                pos = loc.split("outside ", 1)[1]
-                loc_map = {"upper": ("upper center", (1, 1.02)),
-                           "lower": ("lower center", (1, -0.12)),
-                           "right": ("center left", (1.02, 0.5))}
-                if pos in loc_map:
-                    real_loc, anchor = loc_map[pos]
-                    kwargs["loc"] = real_loc
-                    kwargs["bbox_to_anchor"] = anchor
+            kwargs = {"ncol": ncol, **legend_options(loc)}
             self.ax.legend(legend_handles, legend_labels, **kwargs)
 
 
@@ -919,6 +866,7 @@ class CsvPlotterApp(tk.Tk):
 
     def _apply_appearance(self, redraw: bool = True) -> None:
         try:
+            self.ax.set_title(self.plot_title.get().strip())
             width, height = float(self.width.get()), float(self.height.get())
             font_size = float(self.font_size.get())
             if width <= 0 or height <= 0 or font_size <= 0:
@@ -946,17 +894,17 @@ class CsvPlotterApp(tk.Tk):
                 self.ax.grid(True, axis="x", alpha=0.25)
             if self.grid_y.get():
                 self.ax.grid(True, axis="y", alpha=0.25)
-            self.figure.set_size_inches(width, height, forward=True)
+            self.canvas.set_size_inches(width, height)
             self._reset_axes_layout()
-            font = self.font_name.get().strip() or "DejaVu Sans"
+            font = self.font_name.get().strip() or DEFAULT_FONT
             for item in [self.ax.title, self.ax.xaxis.label, self.ax.yaxis.label]:
-                item.set_fontname(font); item.set_fontsize(font_size)
+                item.set_fontfamily(font_family(font)); item.set_fontsize(font_size)
             for lbl in self.ax.get_xticklabels() + self.ax.get_yticklabels():
-                lbl.set_fontname(font); lbl.set_fontsize(font_size)
+                lbl.set_fontfamily(font_family(font)); lbl.set_fontsize(font_size)
             legend = self.ax.get_legend()
             if legend:
                 for text in legend.get_texts():
-                    text.set_fontname(font); text.set_fontsize(font_size * 0.9)
+                    text.set_fontfamily(font_family(font)); text.set_fontsize(font_size * 0.9)
             if redraw:
                 self.canvas.draw()
                 if self.hide_last_xtick.get():
@@ -1018,6 +966,7 @@ class CsvPlotterApp(tk.Tk):
             self.figure.subplots_adjust(left=0.12, right=0.94, bottom=0.14, top=0.82)
         else:
             self.figure.subplots_adjust(left=0.12, right=0.94, bottom=0.14, top=0.90)
+        self.canvas.base_bottom = self.figure.subplotpars.bottom
 
 
 if __name__ == "__main__":

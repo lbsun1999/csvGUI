@@ -7,6 +7,34 @@ csvGUI 包含两个 Tkinter 桌面绘图工具：**csvPLOT** 用于多曲线折�
 | `csvPLOT.py` | CSV | 原始曲线、平滑曲线、多曲线叠加 | `.cplot` |
 | `csvFIG.py` | CSV、结构化 TXT | 纵/横箱线图、柱状误差图、小提琴图、小提琴与箱线组合图 | `.cfig` |
 
+## 窗口与控件
+
+以下截图来自实际运行的程序，使用仓库内的实验 CSV。主侧栏仅保留数据和常用样式，顶部不再显示灰色状态段落，主窗口没有侧栏滚动条。
+
+### csvPLOT 主窗口
+
+![csvPLOT 主窗口及常用控件](docs/screenshots/csvplot-window.jpg)
+
+左侧依次是导入/项目操作、X/Y 选列、配色、平滑窗口、Hold、绘制/清空和重新平滑。下方的 **Figure & Axes...** 打开图形设置，**Advanced Settings...** 管理曲线和细节样式。右侧工具栏负责平移、缩放、布局调整和导出，图形以外为干净灰底。
+
+### csvFIG 主窗口
+
+![csvFIG 主窗口、五组分布与自动倾斜标签](docs/screenshots/csvfig-window.jpg)
+
+左侧保留数据列、分组标签、颜色、宽度、图形类型和显隐选项。统计连线、标记和边框细节移到 **Advanced Settings → Distribution Style**。较长的横轴刻度标签发生重叠时会自动倾斜，并为标签预留底部空间。
+
+### Figure & Axes 弹窗
+
+![画布尺寸与字体设置](docs/screenshots/figure-settings.jpg)
+
+**Canvas & Font** 设置画布宽高、字体与字号。**Axes & Labels** 编辑标题、坐标标签、范围、刻度和网格。**Legend** 选择图例位置、列数和显示方式。
+
+![坐标范围与标签设置](docs/screenshots/axes-settings.jpg)
+
+![图例位置与 best 自动选择](docs/screenshots/legend-settings.jpg)
+
+弹窗使用页签，不需要滚动。**Apply** 应用并继续编辑，**OK** 应用并关闭，**Cancel** 丢弃尚未应用的修改。输入无效范围或尺寸时保留当前图形并提示。
+
 ## 1. 安装与启动
 
 需要 **Python 3.10+** 和可用的桌面显示环境。
@@ -44,7 +72,7 @@ macOS/Linux 通常使用 `python3`，虚拟环境激活命令为 `source .venv/b
 python -m tkinter
 ```
 
-以上命令可以检查 Tkinter。`_txt_io.py` 应与 `csvFIG.py` 放在同一目录。
+以上命令可以检查 Tkinter。`_plot_ui.py` 应与两个主脚本放在同一目录，`_txt_io.py` 应与 `csvFIG.py` 放在同一目录。
 
 ## 2. 实验数据与快速绘图
 
@@ -74,7 +102,7 @@ python -m tkinter
 2. 勾选 **Hold: keep existing curves**，逐个添加其余四列，每次换一个颜色。
 3. 全部添加后，在 **Advanced Settings** 修改标签、原始线透明度和图例。勾选 **Hide original data legends**，可以只保留平滑线的图例项，原始线仍显示。
 4. 分别尝试窗口 **25、100、300**，每次修改后点击 **Re-smooth All Curves**。较大窗口会削弱噪声和短周期振荡，也会产生更明显的滞后。
-5. 将 X 范围设为 **1—5000**、Y 范围设为 **0—100**，再尝试 X 范围 **1000—2000**，点击 **Apply Figure Settings** 比较整体与局部。
+5. 打开 **Figure & Axes → Axes & Labels**，将 X 范围设为 **1—5000**、Y 范围设为 **0—100**，再尝试 X 范围 **1000—2000**，点击 **Apply** 比较整体与局部。
 6. 也可以勾选 Hold，给同一列重复添加不同窗口、不同颜色的版本，在同一图中比较平滑效果。建议曲线添加完成后再统一设置标签。
 
 下面是使用该 CSV 绘制的示意效果，平滑窗口为 100：
@@ -150,7 +178,7 @@ examples/projects/experiment_distributions.cfig
 
 **Advanced Settings → Curves on Plot** 支持：逐条显隐、标签修改、点击颜色块重新选色、**↑ / ↓** 排序，以及 **Delete** 删除单条曲线。显隐会同时影响该数据的原始线和平滑线，图例按曲线列表顺序排列。
 
-**Legend Layout** 提供以下设置：
+**Figure & Axes → Legend** 提供以下设置，高级设置中也保留图例调整入口：
 
 | 控件 | 功能 |
 | --- | --- |
@@ -207,7 +235,7 @@ TXT 用缩进区分数据组，`y` 保存原始观测，独立的 `#` 开头行�
 
 | 控件 | 功能 |
 | --- | --- |
-| **Relative Width** | 相对宽度 `0.1–1.0`。添加前控制新数据，已有数据时拖动更新最后添加的数据项 |
+| **Relative Width** | 相对宽度 `0.1–1.0`。添加前控制新数据，拖动时统一更新已有数据项 |
 | **Show outliers (Box)** | 显示/隐藏箱线图和组合图中的离群点 |
 | **Connect medians** | 用圆点连接各组中位数 |
 | **Connect means** | 用三角标记连接各组均值 |
@@ -218,13 +246,15 @@ TXT 用缩进区分数据组，`y` 保存原始观测，独立的 `#` 开头行�
 | **Show legend** | 显示当前启用的 Median、Mean、Outliers 等统计元素说明 |
 | **Global Box Alpha** | 高级设置中的整体透明度 `0–1`，Apply 后应用于所有数据项 |
 
-csvFIG 的图例说明统计元素，各组名称位于分组坐标轴。图例固定在右上角，没有 csvPLOT 的图例列数与位置面板。
+csvFIG 的图例显示各组颜色及名称，还可以说明中位数、均值与离群点。**Figure & Axes → Legend** 支持 `best` 自动选择、指定图内位置、图外位置与列数，这些设置会保存到 `.cfig` 项目。
+
+统计连线、连线样式、标记尺寸和边框细节位于 **Advanced Settings → Distribution Style**。
 
 **Advanced Settings → Data Items on Plot** 支持逐组显隐、修改标签、重新选色和 **↑ / ↓** 排序。隐藏后，其余可见组重新排列。部分选项在重绘时生效，修改后可在高级设置中点击 **Apply** 统一刷新。
 
 ## 5. 画布、坐标区、字体与工具栏
 
-左侧侧栏可滚动，右侧为 Matplotlib 画布。窗口可缩放，起始窗口为 `1280×820`。
+主窗口侧栏没有滚动条，右侧为 Matplotlib 画布。窗口可缩放，起始窗口为 `1280×820`。点击 **Figure & Axes...** 在弹窗中调整图形设置。高级设置中的数据列表可滚动，以支持较多曲线或分组。
 
 ### 5.1 Figure & Axes
 
@@ -235,13 +265,17 @@ csvFIG 的图例说明统计元素，各组名称位于分组坐标轴。图例�
 | **X Axis: min—step—max** | csvPLOT 的 X 范围与固定主刻度间隔 |
 | **Y Axis: min—step—max** | 两个工具的数值轴范围与固定主刻度间隔 |
 | **Hide last X / Y tick** | 隐藏最后一个主刻度标签，不删除数据；csvFIG 仅提供数值轴选项 |
-| **Apply Figure Settings** | 应用主面板的画布、字体和坐标设置 |
+| **Apply / OK** | 应用弹窗内的画布、字体、坐标与图例设置 |
 
 范围上下限可单独指定，留空的范围自动缩放。固定刻度间隔应为正数。csvFIG 在 `Box (H)` 模式下，面板中名为 **Y Axis** 的范围、步长和末刻度选项实际应用到横向数值轴。
 
-**Advanced Settings** 可编辑 **Plot Title、X-Axis Label、Y-Axis Label**，以及 X/Y 方向网格，还可手动填写字体名称。
+**Axes & Labels** 页签可编辑 **Plot Title、X-Axis Label、Y-Axis Label** 及 X/Y 网格。较长的横轴刻度标签重叠时自动旋转 45°，恢复空间后重新水平排列。
 
-默认 DejaVu Sans 随 Matplotlib 提供。中文标题可选择本机安装的 Microsoft YaHei、SimHei、SimSun、Noto Serif SC 等字体。字体列表是候选名称，不会为系统安装字体。
+程序优先使用已找到的 **TimesSimSun**，适合宋体中文和 Times New Roman 英文混排。将有权使用的字体文件放入 `fonts/`，重启后自动注册，不需要在系统中安装。没有该字体时使用 Matplotlib 自带字体，也可以选择本机已安装的中文字体。字体下拉框还支持手动输入名称。
+
+TimesSimSun 的用户提供来源为公众号 **阿昆的科研日常**，[原文链接](https://mp.weixin.qq.com/s/Z--wuiasKW90wUn2dsC5kw)。本地副本已接入字体；公开仓库不包含字体二进制，获取来源不等于原字体的再分发许可，详见 [fonts/README.md](fonts/README.md)。
+
+调整画布尺寸后只保留当前图像，空余区域使用灰色背景。画布大于显示区域时按比例缩小预览，导出仍保留指定的英寸尺寸和原始 DPI。
 
 ### 5.2 工具栏
 
@@ -284,7 +318,7 @@ csvFIG 的图例说明统计元素，各组名称位于分组坐标轴。图例�
 | 矢量图 | PDF、SVG/SVGZ | 论文和后续排版，保留文字及线条缩放能力 |
 | PostScript | EPS、PS | 需要这些格式的排版流程 |
 
-界面没有单独的导出 DPI 输入框，保存使用 Matplotlib 当前画布设置。JPEG 不保留透明背景，EPS/PS 不完整支持透明度。需要透明效果时可使用 PNG、PDF 或 SVG。工具栏还可能提供 PGF、RAW/RGBA 等格式，其中 PGF 通常需要本机 TeX 环境。
+界面没有单独的导出 DPI 输入框，默认导出按初始 100 DPI 和指定英寸尺寸生成，预览缩放不会降低导出尺寸。JPEG 不保留透明背景，EPS/PS 不完整支持透明度。需要透明效果时可使用 PNG、PDF 或 SVG。工具栏还可能提供 PGF、RAW/RGBA 等格式，其中 PGF 通常需要本机 TeX 环境。
 
 ### 7.2 可编辑项目
 
@@ -297,7 +331,7 @@ csvFIG 的图例说明统计元素，各组名称位于分组坐标轴。图例�
 | 设置 | 标题、轴标签、范围、步长、字体、网格、图例布局 | 标题、轴标签、数值轴设置、字体、网格、统计元素选项 |
 | 继续编辑 | 修改平滑窗口后统一重算 | 重新计算统计值并切换图形类型 |
 
-项目文件使用 JSON，包含已绘制的数据，不依赖原 CSV 路径。工具栏的临时缩放历史、临时子图布局等并非全部持久化，需保存的范围建议写入主面板。
+项目文件使用 JSON，包含已绘制的数据，不依赖原 CSV 路径。工具栏的临时缩放历史、临时子图布局等并非全部持久化，需保存的范围建议写入 Figure & Axes 弹窗。
 
 导出的图片不能通过 Open Project 恢复为可编辑项目。项目扩展名统一使用小写 `.cplot`、`.cfig`。
 
@@ -354,6 +388,9 @@ offset = [0, 0.4, 0.8] rad
 csvPLOT.py                    折线图工具
 csvFIG.py                     分布图工具
 _txt_io.py                    TXT 读取模块
+_plot_ui.py                   字体、画布与设置弹窗
+fonts/                        本地字体与来源说明
+docs/screenshots/             实际窗口与控件截图
 requirements.txt              依赖清单
 requirementLists.txt           依赖清单兼容入口
 LICENSE                       MIT 许可证
@@ -385,7 +422,7 @@ GUI 测试需要显示环境，无显示服务器的 Linux 环境需使用虚拟
 | 新数据覆盖旧数据 | 添加前勾选 Hold |
 | 改平滑窗口后已有曲线没变 | 点击 Re-smooth All Curves |
 | 图例同名项重复 | 在 csvPLOT 勾选 Hide original data legends |
-| csvFIG 图例没有每组名称 | 分组名称显示在坐标轴，图例说明统计元素 |
+| 想调整图例位置 | 打开 Figure & Axes → Legend，选择 best 或指定位置 |
 | 不能连续添加当前列 | 切换其他列或清空重绘 |
 | 想查看数值轴局部 | 修改 Figure & Axes 范围或使用 Zoom |
 | TXT 导入不可用 | 确认 `_txt_io.py` 与 csvFIG 在同一目录 |
