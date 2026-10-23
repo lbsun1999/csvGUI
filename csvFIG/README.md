@@ -13,7 +13,7 @@ python csvFIG/csvFIG.py
 
 每张图都提供 **600 DPI PNG、矢量 PDF/SVG 和含原始观测的 `.cfig` 项目**。所有图片均由对应项目重开后导出，项目中的样式与图片一致。
 
-使用 **2.6 × 2.05 英寸坐标区、13 pt 字体**，短分组标签、白底、少量刻度，默认无图例；无内置标题，方便在论文中统一安排图注与子图编号。完整画布约 3.52 × 2.64 英寸，横向版本约 3.60 × 2.80 英寸；以[图集清单](../examples/gallery_manifest.json)为准。
+使用 **2.6 × 2.05 英寸坐标区、13 pt 字体**，短分组标签、白底、少量刻度，默认无图例；无内置标题，方便在论文中统一安排图注与子图编号。完整画布会随自动倾斜的标签及其他文字调整，具体英寸尺寸见[图集清单](../examples/gallery_manifest.json)。
 
 | 箱线图 · Box (V) | 柱状误差图 · Bar+Err |
 | --- | --- |
@@ -41,7 +41,17 @@ python csvFIG/csvFIG.py
 | Skew | `right_skewed` | 紫色，右偏 |
 | Tail | `heavy_tail` | 橙色，厚尾 |
 
-每组均为 **5000 个原始观测**。示例填充透明度 0.75、相对宽度 0.68、边线宽度 1.2。字体使用 Matplotlib 自带的 DejaVu Serif；中文图可切换 TimesSimSun。
+每组均为 **5000 个原始观测**。五张图故意使用不同的透明度、宽度、边框和统计连线，参数如下。边线宽度统一为 1.2，字体使用 Matplotlib 自带的 DejaVu Serif；中文图可切换 TimesSimSun。
+
+| 示例项目 | 填充 Alpha | 相对宽度 | 边框 | 组间统计连线 | 线型 / 标记大小 |
+| --- | --- | --- | --- | --- | --- |
+| `box.cfig` | 0 | 0.50 | 全黑 | 无 | 无标记 |
+| `bar-error.cfig` | 0.55 | 0.62 | 黑色 | 均值，三角标记 | dashdot / 5 |
+| `violin.cfig` | 0.45 | 0.90 | 随组颜色 | 中位数，圆点标记 | dotted / 4 |
+| `violin-box.cfig` | 0.25 | 0.95 | 黑色 | 无 | 无标记 |
+| `box-horizontal.cfig` | 0.65 | 0.40 | 随组颜色 | 中位数，仅线段 | solid / 0 |
+
+表中的连线连接不同分组的统计值，仅展示样式功能；这些合成分组是独立总体，连线不表示配对关系或时间趋势。颜色表描述彩色示例，黑白箱线图将所有组设置为黑色。
 
 为避免厚尾数据的大量离群点挤满紧凑画面，箱线图和组合图示例关闭 **Show outliers**；样本仍完整保存在项目里，可随时勾选显示。小提琴密度使用全部样本。箱线图/柱状图数值轴为 0–100，小提琴/组合图为 0–120，比较时请留意刻度。**Bar+Err 的误差条表示箱线图上下须，不是标准差、标准误或置信区间。**
 
@@ -55,9 +65,64 @@ python csvFIG/csvFIG.py
 
 ## 实际窗口与控件
 
-![csvFIG 紧凑项目窗口，默认无图例](../docs/screenshots/csvfig-compact-window.jpg)
+![csvFIG 紧凑项目窗口，宽度可调且默认无图例](../docs/screenshots/csvfig-style-window.jpg)
 
 左侧为 CSV 导入、项目保存/打开、数据列、标签、颜色、宽度和图形类型。Hold 支持多组叠加。**Figure & Axes** 打开坐标与画布弹窗，**Advanced Settings** 打开数据项及统计样式设置。顶部不显示状态文字，主面板无需滚动。
+
+## 高级设置截图与操作顺序
+
+### 1. 连线、线型、标记、边框与透明度
+
+![统计连线、边框与透明度控件](../docs/screenshots/csvfig-advanced-style.jpg)
+
+截图加载的是 `bar-error.cfig`：勾选 Connect means、使用 dashdot、标记大小 5、黑色边框、Alpha 0.55。高级设置窗口内可滚动，同时可编辑标题、轴标签、字体和网格；Apply 与 Cancel 固定在底部。
+
+| 控件 | 操作与效果 | 生效方式 |
+| --- | --- | --- |
+| **Connect medians** | 连接各组中位数，圆点标记 | 勾选即重绘 |
+| **Connect means** | 连接各组均值，三角标记 | 勾选即重绘 |
+| **Connection Line Style** | 选择 solid、dashed、dashdot、dotted 或 none；均值和中位数共用 | 选中即重绘 |
+| **Connection Marker Size** | 0–15；0 隐藏标记，但仍可保留连线 | 拖动即重绘 |
+| **Edge / Line Width** | 0.5–5，调整轮廓、须和统计连线线宽 | 拖动即重绘 |
+| **Edges: Color / Black** | 点击切换；按钮文字显示当前模式，Black 为黑边，Color 跟随各组颜色 | 点击即重绘 |
+| **Global Box Alpha** | 0 为无填充，1 为不透明；输入框对应的是填充，不会同时隐藏边框 | 拖动后点 Apply，统一应用到所有组 |
+
+solid 为实线，dashed 为虚线，dashdot 为点划线，dotted 为点线。选择 `none` 并保留非零标记大小，可得到“只显示统计点、不连线”；标记大小为 0 且选非 none，可得到“只连线、不打点”。两者都关闭时不显示组间统计连接。箱体内部的中位数线不受这个连线开关影响，仍然显示。
+
+**Connection Line Style / Marker Size** 是以前 Median Line Style / Marker Size 的新名称，项目文件中的旧字段仍兼容。它们控制均值、中位数的组间连接，不会把箱线图每条须或箱体边缘改成虚线。
+
+打开窗口时，Alpha 显示第一组的当前值。各组 Alpha 不同时，未拖动该控件直接 Apply 会保留各组原值；调整后 Apply 才会统一它们。连线、线型和边框为即时设置，Cancel 关闭窗口不会回滚已经即时应用的改变；尚未 Apply 的 Alpha、标签和显隐修改则不会提交。
+
+### 2. 分组标签、显隐、顺序与颜色
+
+![各组标签、显隐、色块与排序](../docs/screenshots/csvfig-advanced-items.jpg)
+
+每行从左到右为：显示开关、组序号、标签输入框、颜色块和上移/下移按钮。标签和显隐在 Apply 后生效；隐藏一组会让其余组重新排布。上移/下移会重绘图形并重新打开设置窗口，调整前建议先 Apply 尚未提交的编辑。
+
+![分组颜色选择器](../docs/screenshots/csvfig-color-picker.jpg)
+
+点击**已绘制数据行的色块**，可从 Palette 选择预设色，或在 Custom 中输入 `#RRGGBB`（例如黑色 `#000000`）；Preview 显示当前选色，**OK** 才应用给这一组。Picker… 打开系统选色器。主窗口的 Color 用于下一次 Add Data；修改已有分组请使用这些色块。
+
+### 3. 调整“胖瘦”
+
+主窗口 **Relative Width** 范围为 0.1–1.0，拖动后会立即将当前所有分组统一为这一宽度；新添加的组也使用当前值。数值小则箱体、柱子或小提琴更窄，数值大则更宽，组中心位置保持不变。
+
+- Box (V)：调整箱体的水平宽度；Box (H)：调整横向箱体的垂直厚度。
+- Bar+Err：调整柱宽；误差条端帽大小由绘图程序固定，不能用这个滑块单独调整。
+- Violin：调整小提琴在分类轴方向的最大宽度，不改变原始观测或 KDE 带宽。
+- Violin+Box：同时调整外层小提琴和内层箱体，内层箱体宽度保持为外层的约 30%。
+
+### 4. 黑白空心箱线图的完整做法
+
+直接打开 [box.cfig](examples/projects/box.cfig) 就能看到效果，也可以从任一分布项目开始：
+
+1. Plot Type 选择 **Box (V)** 或 **Box (H)**。
+2. 在高级设置中点击各组色块，将颜色设成 `#000000`；或者直接把边框模式切到 **Edges: Black**，保留各组原配色以便以后切回。
+3. **Global Box Alpha** 调到 **0**，点击 **Apply**。填充消失，黑色轮廓、须、端帽及中位数线仍保留。
+4. 关闭 **Connect medians / Connect means**，用 Relative Width 调整胖瘦；本例用 0.50。
+5. 如需观察须外点，勾选 **Show outliers (Box)**。离群点为程序固定的灰色小圆点，Alpha 只影响填充，不控制这些点。
+
+这里的 Alpha=0 是“箱体不填充”，不是将导出图片背景设为透明。边框开关主要控制箱体、柱体和小提琴轮廓；须与端帽固定为深灰，中位数及统计连接固定为黑色。组合图内层箱体有固定的白色填充；要获得传统空心箱线图，请选择 Box 类型。
 
 ## csvFIG 功能
 
@@ -89,12 +154,12 @@ python csvFIG/csvFIG.py
 | **Show outliers (Box)** | 显示/隐藏箱线图和组合图中的离群点 |
 | **Connect medians** | 用圆点连接各组中位数 |
 | **Connect means** | 用三角标记连接各组均值 |
-| **Median Line Style** | 实线、虚线、点划线、点线或无线段，均值与中位数连线共用此设置 |
-| **Median Marker Size** | 统计连线标记尺寸 `0–15`，设为 `0` 隐藏标记 |
+| **Connection Line Style** | 实线、虚线、点划线、点线或无线段，均值与中位数连线共用此设置 |
+| **Connection Marker Size** | 统计连线标记尺寸 `0–15`，设为 `0` 隐藏标记 |
 | **Edge / Line Width** | 箱体边缘、须、小提琴轮廓及统计连线线宽，范围 `0.5–5` |
 | **Edges: Color / Black** | 在数据配色边框和黑色边框之间切换 |
 | **Show legend** | 显示当前启用的 Median、Mean、Outliers 等统计元素说明 |
-| **Global Box Alpha** | 高级设置中的整体透明度 `0–1`，Apply 后应用于所有数据项 |
+| **Global Box Alpha** | 高级设置中的整体透明度 `0–1`，调整后 Apply 应用于所有数据项 |
 
 csvFIG **默认不显示图例**，各组名称由坐标轴标签说明。需要时可以手动勾选 **Show legend**，显示各组颜色及名称，以及中位数、均值与离群点的说明。打开项目时恢复其保存的图例开关。分簇箱线图计划后续添加，当前版本尚不支持。**Figure & Axes → Legend** 支持 `best` 自动选择、指定图内位置、图外位置与列数，这些设置会保存到 `.cfig` 项目。
 

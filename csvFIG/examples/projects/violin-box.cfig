@@ -21,13 +21,13 @@
     "connect_medians": false,
     "connect_means": false,
     "edge_lw": 1.2,
-    "black_edges": false,
+    "black_edges": true,
     "median_linestyle": "solid",
-    "median_marker_size": 6.0,
+    "median_marker_size": 0.0,
     "show_legend": false,
     "legend_loc": "best",
     "legend_ncol": 1,
-    "box_width": 0.68
+    "box_width": 0.95
   },
   "boxes": [
     {
@@ -35,8 +35,8 @@
       "label": "Uni",
       "color": "#2855A6",
       "visible": true,
-      "alpha": 0.75,
-      "width": 0.68,
+      "alpha": 0.25,
+      "width": 0.95,
       "source_key": "experiment_distributions.csv::single_peak",
       "stats": {
         "mean": 20.587823129999997,
@@ -5168,8 +5168,8 @@
       "label": "Bi",
       "color": "#A6232F",
       "visible": true,
-      "alpha": 0.75,
-      "width": 0.68,
+      "alpha": 0.25,
+      "width": 0.95,
       "source_key": "experiment_distributions.csv::bimodal",
       "stats": {
         "mean": 34.0086068552,
@@ -10192,8 +10192,8 @@
       "label": "Tri",
       "color": "#229954",
       "visible": true,
-      "alpha": 0.75,
-      "width": 0.68,
+      "alpha": 0.25,
+      "width": 0.95,
       "source_key": "experiment_distributions.csv::trimodal",
       "stats": {
         "mean": 50.6489159056,
@@ -15216,8 +15216,8 @@
       "label": "Skew",
       "color": "#7D3C98",
       "visible": true,
-      "alpha": 0.75,
-      "width": 0.68,
+      "alpha": 0.25,
+      "width": 0.95,
       "source_key": "experiment_distributions.csv::right_skewed",
       "stats": {
         "mean": 65.7892565262,
@@ -20868,8 +20868,8 @@
       "label": "Tail",
       "color": "#D35400",
       "visible": true,
-      "alpha": 0.75,
-      "width": 0.68,
+      "alpha": 0.25,
+      "width": 0.95,
       "source_key": "experiment_distributions.csv::heavy_tail",
       "stats": {
         "mean": 83.048995661,

@@ -696,8 +696,10 @@ class CsvFigApp(tk.Tk):
         dlg.grab_set()
 
         # Scrolled area
-        scroll_canvas = tk.Canvas(dlg, highlightthickness=0)
-        vbar = ttk.Scrollbar(dlg, orient=tk.VERTICAL, command=scroll_canvas.yview)
+        body = ttk.Frame(dlg)
+        body.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        scroll_canvas = tk.Canvas(body, highlightthickness=0)
+        vbar = ttk.Scrollbar(body, orient=tk.VERTICAL, command=scroll_canvas.yview)
         scroll_canvas.configure(yscrollcommand=vbar.set)
         vbar.pack(side=tk.RIGHT, fill=tk.Y)
         scroll_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -744,11 +746,11 @@ class CsvFigApp(tk.Tk):
                         command=self._redraw).pack(anchor=tk.W, pady=(4, 0))
         ttk.Checkbutton(detail_style, text="Connect means", variable=self._connect_means,
                         command=self._redraw).pack(anchor=tk.W, pady=(2, 0))
-        ttk.Label(detail_style, text="Median Line Style").pack(anchor=tk.W, pady=(4, 0))
+        ttk.Label(detail_style, text="Connection Line Style").pack(anchor=tk.W, pady=(4, 0))
         ttk.Combobox(detail_style, textvariable=self._median_linestyle,
                      values=["solid", "dashed", "dashdot", "dotted", "none"],
                      state="readonly").pack(fill=tk.X)
-        self._slider_row(detail_style, "Median Marker Size", self._median_marker_size, 0, 15, "{:.0f}")
+        self._slider_row(detail_style, "Connection Marker Size", self._median_marker_size, 0, 15, "{:.0f}")
         self._slider_row(detail_style, "Edge / Line Width", self._edge_lw, 0.5, 5.0, "{:.1f}")
         self._black_edges_btn = ttk.Button(detail_style, textvariable=self._edge_mode_text,
                                            command=self._toggle_black_edges)
@@ -758,8 +760,14 @@ class CsvFigApp(tk.Tk):
         ttk.Label(inner, text="Global Box Alpha (0 = transparent, 1 = opaque)").pack(anchor=tk.W, pady=(6, 2))
         alpha_row = ttk.Frame(inner)
         alpha_row.pack(fill=tk.X, padx=12, pady=(0, 4))
-        alpha_val = tk.DoubleVar(value=0.6)
-        alpha_label = ttk.Label(alpha_row, text="0.60", width=5)
+        alpha_val = tk.DoubleVar(value=self._boxes[0].get("alpha", 0.6) if self._boxes else 0.6)
+        alpha_label = ttk.Label(alpha_row, text=f"{alpha_val.get():.2f}", width=5)
+        alpha_changed = [False]
+        def _alpha_changed(*_):
+            alpha_changed[0] = True
+            alpha_label.config(text=f"{alpha_val.get():.2f}")
+        alpha_trace = alpha_val.trace_add("write", _alpha_changed)
+        alpha_label.bind("<Destroy>", lambda _: alpha_val.trace_remove("write", alpha_trace))
         def _on_alpha(_=None):
             alpha_label.config(text=f"{alpha_val.get():.2f}")
         ttk.Scale(alpha_row, from_=0.0, to=1.0, variable=alpha_val, command=_on_alpha).pack(side=tk.LEFT, fill=tk.X, expand=True)
@@ -811,8 +819,9 @@ class CsvFigApp(tk.Tk):
             self.y_label_var.set(y_var.get().strip())
             # Apply global alpha to all boxes
             ga = alpha_val.get()
-            for box in self._boxes:
-                box["alpha"] = ga
+            if alpha_changed[0]:
+                for box in self._boxes:
+                    box["alpha"] = ga
             # Update visibility and labels
             for box, (kv, lv) in zip(self._boxes, box_vars):
                 box["visible"] = kv.get()
@@ -824,9 +833,13 @@ class CsvFigApp(tk.Tk):
             dlg.destroy()
 
         btn_frame = ttk.Frame(dlg)
-        btn_frame.pack(fill=tk.X, pady=12, padx=12)
+        btn_frame.pack(side=tk.BOTTOM, fill=tk.X, pady=12, padx=12)
         ttk.Button(btn_frame, text="Apply", command=apply_settings).pack(side=tk.RIGHT, padx=(4, 0))
         ttk.Button(btn_frame, text="Cancel", command=cancel).pack(side=tk.RIGHT)
+        dlg._scroll_canvas = scroll_canvas
+        dlg._style_frame = detail_style
+        dlg._items_frame = list_frame
+        dlg._alpha_variable = alpha_val
 
     def _pick_color_for(self, idx: int, btn_widget: tk.Button) -> None:
         """Open a color picker dialog with palette swatches + custom color."""

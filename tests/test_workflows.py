@@ -175,6 +175,34 @@ class GuiTests(unittest.TestCase):
         next(w for w in widgets(dialog) if isinstance(w, ttk.Button) and w.cget("text") == "Apply").invoke()
         self.assertTrue(app.bind("<MouseWheel>"))
 
+    def test_distribution_advanced_preserves_alpha_and_restores_connections(self):
+        app = self.app(csvFIG.CsvFigApp)
+        self.load_csv(app, 'distributions.csv')
+        for name in ('group_a', 'group_b'):
+            app.column.set(name)
+            app.add_box()
+            app.hold.set(True)
+        app._boxes[0]['alpha'] = 0.0
+        app._boxes[1]['alpha'] = 0.25
+        app._open_advanced()
+        dialog = next(w for w in app.winfo_children() if isinstance(w, tk.Toplevel))
+        self.assertEqual(dialog._alpha_variable.get(), 0.0)
+        app._connect_medians.set(True)
+        app._median_linestyle.set('dashed')
+        app._black_edges.set(True)
+        next(w for w in widgets(dialog) if isinstance(w, ttk.Button) and w.cget('text') == 'Apply').invoke()
+        self.assertEqual([b['alpha'] for b in app._boxes], [0.0, 0.25])
+        saved = self.roundtrip(app, 'cfig')
+        self.assertTrue(saved['settings']['connect_medians'])
+        self.assertEqual(saved['settings']['median_linestyle'], 'dashed')
+        self.assertEqual(app.ax.patches[0].get_facecolor()[3], 0.0)
+        np.testing.assert_allclose(app.ax.patches[0].get_edgecolor()[:3], [0, 0, 0])
+        app._open_advanced()
+        dialog = next(w for w in app.winfo_children() if isinstance(w, tk.Toplevel))
+        dialog._alpha_variable.set(0.4)
+        next(w for w in widgets(dialog) if isinstance(w, ttk.Button) and w.cget('text') == 'Apply').invoke()
+        self.assertEqual([b['alpha'] for b in app._boxes], [0.4, 0.4])
+
     def test_constant_distribution_can_render_violin(self):
         app = self.app(csvFIG.CsvFigApp)
         app.data = pd.DataFrame({"constant": [3, 3, 3, np.inf]})

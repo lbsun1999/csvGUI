@@ -16,6 +16,13 @@ from csvPLOT.csvPLOT import CsvPlotterApp
 COLORS = ['#2855A6', '#A6232F', '#229954', '#7D3C98', '#D35400']
 FIG_TYPES = [('box', 'Box (V)'), ('bar-error', 'Bar+Err'),
              ('violin', 'Violin'), ('violin-box', 'Violin+Box'), ('box-horizontal', 'Box (H)')]
+FIG_STYLES = {
+    'Box (V)': dict(alpha=0.0, width=0.50, black=True, medians=False, means=False, line='solid', marker=0),
+    'Bar+Err': dict(alpha=0.55, width=0.62, black=True, medians=False, means=True, line='dashdot', marker=5),
+    'Violin': dict(alpha=0.45, width=0.90, black=False, medians=True, means=False, line='dotted', marker=4),
+    'Violin+Box': dict(alpha=0.25, width=0.95, black=True, medians=False, means=False, line='solid', marker=0),
+    'Box (H)': dict(alpha=0.65, width=0.40, black=False, medians=True, means=False, line='solid', marker=0),
+}
 
 
 def open_csv(app, tool, filename):
@@ -95,6 +102,18 @@ def build_distribution(kind):
         app._boxes[-1]['source_key'] = f'experiment_distributions.csv::{column}'
         app.hold.set(True)
     app.box_orientation.set(kind)
+    style = FIG_STYLES[kind]
+    app.box_width.set(style['width'])
+    app._black_edges.set(style['black'])
+    app._edge_mode_text.set('Edges: Black' if style['black'] else 'Edges: Color')
+    app._connect_medians.set(style['medians'])
+    app._connect_means.set(style['means'])
+    app._median_linestyle.set(style['line'])
+    app._median_marker_size.set(style['marker'])
+    for box in app._boxes:
+        box['alpha'] = style['alpha']
+        if kind == 'Box (V)':
+            box['color'] = '#000000'
     app.ymin.set('0')
     app.ymax.set('120' if kind in ('Violin', 'Violin+Box') else '100')
     app.y_tick_step.set('40' if kind in ('Violin', 'Violin+Box') else '25')
@@ -133,22 +152,46 @@ def save_and_export(app, tool, stem):
              'axes_inches': list(app.canvas.requested_inches),
              'figure_inches': list(app.canvas.total_inches), 'font_size_pt': 13,
              'font_family': settings['font_name'], 'png_dpi': 600}
+    if tool == 'csvFIG':
+        entry['style'] = {key: settings[key] for key in (
+            'box_width', 'black_edges', 'connect_medians', 'connect_means',
+            'median_linestyle', 'median_marker_size', 'edge_lw')}
+        entry['groups'] = [{key: box[key] for key in ('label', 'color', 'alpha', 'width')}
+                           for box in app._boxes]
     app.update_idletasks()
     app.destroy()
     print(f'Exported {tool}/{stem}', flush=True)
     return entry
 
 
-def preview(kind, settings):
+def preview(kind, settings, advanced=None):
     app = CsvPlotterApp() if kind == 'plot' else CsvFigApp()
     app.withdraw()
     path = ROOT / ('csvPLOT/examples/projects/curves.cplot' if kind == 'plot'
+                   else 'csvFIG/examples/projects/bar-error.cfig' if advanced
                    else 'csvFIG/examples/projects/violin-box.cfig')
     with patch('tkinter.filedialog.askopenfilename', return_value=str(path)):
         app.load_project()
     app.title(f'csv{ "PLOT" if kind == "plot" else "FIG"} - compact gallery')
     app.geometry('1080x730+60+40')
-    if settings:
+    if advanced:
+        app._open_advanced()
+        dialog = next(w for w in app.winfo_children() if w.winfo_class() == 'Toplevel')
+        dialog.transient(''); dialog.deiconify()
+        height = 540 if advanced == 'items' else min(860, app.winfo_screenheight()-120)
+        dialog.geometry(f'620x{height}+80+40')
+        dialog.title('csvFIG advanced ' + advanced)
+        app.update_idletasks()
+        target = dialog._style_frame if advanced == 'style' else dialog._items_frame
+        canvas = dialog._scroll_canvas
+        canvas.yview_moveto(max(0, (target.winfo_y()-8) / canvas.bbox('all')[3]))
+        if advanced == 'color':
+            button = next(w for w in dialog._items_frame.winfo_children() if w.winfo_class() == 'Button')
+            app._pick_color_for(0, button)
+            picker = next(w for w in app.winfo_children() if w.winfo_class() == 'Toplevel' and w.title() == 'Pick Color')
+            picker.transient(''); picker.deiconify(); picker.title('csvFIG color picker')
+        dialog.focus_set()
+    elif settings:
         dialog = app._open_figure_settings()
         dialog.transient(''); dialog.deiconify()
         dialog.title(f'Gallery settings {settings}')
@@ -164,15 +207,22 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--preview', choices=['plot', 'fig'])
     parser.add_argument('--settings', choices=['area', 'axes', 'legend'])
+    parser.add_argument('--advanced', choices=['style', 'items', 'color'])
+    parser.add_argument('--tool', choices=['csvPLOT', 'csvFIG'], help='Rebuild only one tool gallery.')
     args = parser.parse_args()
     warnings.filterwarnings('ignore', category=PendingDeprecationWarning)
     if args.preview:
-        preview(args.preview, args.settings)
+        preview(args.preview, args.settings, args.advanced)
         return
-    entries = [save_and_export(build_curves(mode), 'csvPLOT', mode)
-               for mode in ('curves', 'detail', 'smoothing')]
-    entries += [save_and_export(build_distribution(kind), 'csvFIG', stem)
-                for stem, kind in FIG_TYPES]
+    entries = []
+    if args.tool != 'csvFIG':
+        entries += [save_and_export(build_curves(mode), 'csvPLOT', mode)
+                    for mode in ('curves', 'detail', 'smoothing')]
+    if args.tool != 'csvPLOT':
+        entries += [save_and_export(build_distribution(kind), 'csvFIG', stem) for stem, kind in FIG_TYPES]
+    if args.tool:
+        existing = json.loads((ROOT / 'examples/gallery_manifest.json').read_text(encoding='utf-8'))
+        entries = [item for item in existing if item['tool'] != args.tool] + entries
     (ROOT / 'examples' / 'gallery_manifest.json').write_text(
         json.dumps(entries, indent=2) + '\n', encoding='utf-8')
 
