@@ -1,0 +1,3 @@
+# Compatibility entry point. Keep dependency versions in requirements.txt.
+# Install with: python -m pip install -r requirementLists.txt
+-r requirements.txt

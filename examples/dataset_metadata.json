@@ -1,0 +1,283 @@
+{
+  "synthetic": true,
+  "rows_per_csv": 5000,
+  "rounding_decimals": 6,
+  "curves": {
+    "path": "csvPLOT/experiment_curves.csv",
+    "seed": 20261023,
+    "index": "row = 1..5000; t = row - 1",
+    "model": "y = intercept + slope*t + sum(A_k*sin(2*pi*k*t/1000 + k*phase + phase_offset_k)) + noise",
+    "harmonics": [
+      1,
+      3,
+      10
+    ],
+    "phase_offsets_rad": [
+      0,
+      0.4,
+      0.8
+    ],
+    "fundamental_period_rows": 1000,
+    "noise": "Gaussian noise, centered and scaled to the specified finite-sample power ratio",
+    "snr_definition": "10*log10(mean(harmonic**2)/mean(noise**2)); excludes linear trend and intercept",
+    "specifications": [
+      {
+        "column": "slow_rising_snr20",
+        "intercept": 10,
+        "slope": 0.006,
+        "amplitudes": [
+          4,
+          1.8,
+          0.9
+        ],
+        "phase": 0,
+        "snr_db": 20
+      },
+      {
+        "column": "fast_rising_snr12",
+        "intercept": 25,
+        "slope": 0.009,
+        "amplitudes": [
+          5,
+          2.4,
+          1.2
+        ],
+        "phase": 0.5,
+        "snr_db": 12
+      },
+      {
+        "column": "falling_snr6",
+        "intercept": 55,
+        "slope": -0.005,
+        "amplitudes": [
+          4.5,
+          1.8,
+          1
+        ],
+        "phase": 1,
+        "snr_db": 6
+      },
+      {
+        "column": "flat_snr10",
+        "intercept": 65,
+        "slope": 0,
+        "amplitudes": [
+          3,
+          1.5,
+          0.8
+        ],
+        "phase": 0.8,
+        "snr_db": 10
+      },
+      {
+        "column": "gentle_rising_snr16",
+        "intercept": 80,
+        "slope": 0.002,
+        "amplitudes": [
+          5,
+          2,
+          1
+        ],
+        "phase": 1.5,
+        "snr_db": 16
+      }
+    ],
+    "measured_snr_db_after_rounding": {
+      "slow_rising_snr20": 20.00000006723662,
+      "fast_rising_snr12": 12.000000001827182,
+      "falling_snr6": 5.999999996125911,
+      "flat_snr10": 10.000000089111111,
+      "gentle_rising_snr16": 16.000000053684417
+    },
+    "summary": {
+      "slow_rising_snr20": {
+        "n": 5000,
+        "mean": 24.996999995600003,
+        "std_sample": 8.738325816246531,
+        "min": 8.558426,
+        "q1": 17.496525,
+        "median": 24.889512000000003,
+        "q3": 32.3505895,
+        "max": 41.939999
+      },
+      "fast_rising_snr12": {
+        "n": 5000,
+        "mean": 47.4954999984,
+        "std_sample": 13.191211659652044,
+        "min": 21.875125,
+        "q1": 36.554432750000004,
+        "median": 47.052683,
+        "q3": 58.41070925,
+        "max": 75.649973
+      },
+      "falling_snr6": {
+        "n": 5000,
+        "mean": 42.5025000006,
+        "std_sample": 8.384882595950815,
+        "min": 22.428967,
+        "q1": 36.191645,
+        "median": 42.648911999999996,
+        "q3": 48.69894975,
+        "max": 64.584103
+      },
+      "flat_snr10": {
+        "n": 5000,
+        "mean": 65.00000000479999,
+        "std_sample": 2.5706338861645013,
+        "min": 58.62185,
+        "q1": 62.738972499999996,
+        "median": 65.04727650000001,
+        "q3": 67.243718,
+        "max": 70.543021
+      },
+      "gentle_rising_snr16": {
+        "n": 5000,
+        "mean": 84.9990000026,
+        "std_sample": 4.840225806775427,
+        "min": 74.001291,
+        "q1": 81.3194685,
+        "median": 85.02249499999999,
+        "q3": 88.66582025,
+        "max": 96.052456
+      }
+    }
+  },
+  "distributions": {
+    "path": "csvFIG/experiment_distributions.csv",
+    "seed": 20261024,
+    "model": "Gaussian mixtures with exact component counts (weight*5000), independently shuffled per column",
+    "row_meaning": "Each column is an independent population; rows do not identify paired subjects",
+    "specifications": [
+      {
+        "column": "single_peak",
+        "weights": [
+          0.7,
+          0.3
+        ],
+        "means": [
+          20,
+          22
+        ],
+        "stds": [
+          2,
+          3
+        ]
+      },
+      {
+        "column": "bimodal",
+        "weights": [
+          0.55,
+          0.45
+        ],
+        "means": [
+          30,
+          39
+        ],
+        "stds": [
+          1.8,
+          2.4
+        ]
+      },
+      {
+        "column": "trimodal",
+        "weights": [
+          0.3,
+          0.45,
+          0.25
+        ],
+        "means": [
+          44,
+          51,
+          58
+        ],
+        "stds": [
+          1.4,
+          1.8,
+          1.6
+        ]
+      },
+      {
+        "column": "right_skewed",
+        "weights": [
+          0.8,
+          0.2
+        ],
+        "means": [
+          64,
+          73
+        ],
+        "stds": [
+          1.8,
+          3
+        ]
+      },
+      {
+        "column": "heavy_tail",
+        "weights": [
+          0.9,
+          0.1
+        ],
+        "means": [
+          83,
+          83
+        ],
+        "stds": [
+          1.8,
+          7
+        ]
+      }
+    ],
+    "summary": {
+      "single_peak": {
+        "n": 5000,
+        "mean": 20.587823129999997,
+        "std_sample": 2.5572370007768415,
+        "min": 12.068842,
+        "q1": 18.88103075,
+        "median": 20.4156135,
+        "q3": 22.0603215,
+        "max": 32.882355
+      },
+      "bimodal": {
+        "n": 5000,
+        "mean": 34.0086068552,
+        "std_sample": 4.86218149712037,
+        "min": 23.751479,
+        "q1": 29.84137025,
+        "median": 32.3978005,
+        "q3": 38.529711750000004,
+        "max": 47.129278
+      },
+      "trimodal": {
+        "n": 5000,
+        "mean": 50.6489159056,
+        "std_sample": 5.4130938903473975,
+        "min": 39.294879,
+        "q1": 45.2832355,
+        "median": 50.732353,
+        "q3": 54.8975225,
+        "max": 63.029998
+      },
+      "right_skewed": {
+        "n": 5000,
+        "mean": 65.7892565262,
+        "std_sample": 4.2133779434499585,
+        "min": 57.737693,
+        "q1": 63.0735235,
+        "median": 64.5272525,
+        "q3": 66.67950225000001,
+        "max": 83.182607
+      },
+      "heavy_tail": {
+        "n": 5000,
+        "mean": 83.048995661,
+        "std_sample": 2.8284975728531716,
+        "min": 59.687595,
+        "q1": 81.70955574999999,
+        "median": 83.0931545,
+        "q3": 84.38832000000001,
+        "max": 109.832177
+      }
+    }
+  }
+}

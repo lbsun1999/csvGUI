@@ -1,4 +1,8 @@
+# Python 3.10+; Tkinter is supplied by Python/the OS, not by pip.
+# CSV loading and numeric data handling
 pandas>=2.0
 numpy>=1.24
+# Embedded plotting and image export
 matplotlib>=3.7
-scipy
+# Kernel density estimation for csvFIG violin plots
+scipy>=1.10
