@@ -127,7 +127,7 @@ python csvPLOT/csvPLOT.py
 
 程序优先使用已找到的 **TimesSimSun**，适合宋体中文和 Times New Roman 英文混排。将有权使用的字体文件放入 `../common/fonts/`，重启后自动注册，不需要在系统中安装。没有该字体时使用 Matplotlib 自带字体，也可以选择本机已安装的中文字体。字体下拉框还支持手动输入名称。
 
-TimesSimSun 的用户提供来源为公众号 **阿昆的科研日常**，[原文链接](https://mp.weixin.qq.com/s/Z--wuiasKW90wUn2dsC5kw)。本地副本已接入字体；公开仓库不包含字体二进制，获取来源不等于原字体的再分发许可，详见 [fonts/README.md](../common/fonts/README.md)。
+TimesSimSun 的字体获取与项目说明引用 [Zhoushijiehqu/Academic-Font-TimesSimSun](https://github.com/Zhoushijiehqu/Academic-Font-TimesSimSun)。公众号 **阿昆的科研日常** 的[相关文章](https://mp.weixin.qq.com/s/Z--wuiasKW90wUn2dsC5kw)作为介绍渠道保留，不作为原创署名。字体仓库声明仅供个人学术研究及非商业使用；字体不适用本项目代码的 MIT 许可证，公开仓库不打包字体二进制，详见[字体来源与加载说明](../common/fonts/README.md)。
 
 坐标区是坐标轴边框以内的数据绘制区域。程序按字体和字号测量刻度、轴标签、标题及图例，在四周自动增加画布空间，保持指定的坐标区宽高；长横轴刻度标签重叠时自动倾斜。缩小坐标区或增大字号时，文字仍会被纳入画布；减小字号或缩短文字后，多余边距也会收回。
 

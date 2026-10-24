@@ -42,7 +42,7 @@ python csvFIG/csvFIG.py
 - csvPLOT：5000 行 × 6 列，[实验 CSV](csvPLOT/examples/experiment_curves.csv)，首列为行号，其余列含趋势、谐波与噪声；平滑窗口默认 **25**。
 - csvFIG：5000 行 × 5 列，[实验 CSV](csvFIG/examples/experiment_distributions.csv)，包含单峰、双峰、三峰、右偏与厚尾的原始观测。
 - 两者均支持坐标范围、刻度、标签、画布、字体、图例、颜色、透明度和多种图片格式。宽高表示**坐标区尺寸**，外围画布自动容纳文字。
-- TimesSimSun 本地加载与来源说明见 [common/fonts](common/fonts/README.md)。字体二进制不包含在公开仓库中。
+- TimesSimSun 字体获取与项目说明见 [Zhoushijiehqu/Academic-Font-TimesSimSun](https://github.com/Zhoushijiehqu/Academic-Font-TimesSimSun)，本地加载方法见 [common/fonts](common/fonts/README.md)。字体二进制不包含在公开仓库中。
 
 ## 复现图集
 
