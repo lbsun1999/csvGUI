@@ -1,5 +1,7 @@
 # csvFIG
 
+**简体中文** | [English](README.en.md)
+
 统计分布绘图与期刊插图排版。[系列首页](../README.md) · [实验 CSV](examples/experiment_distributions.csv)
 
 ```powershell

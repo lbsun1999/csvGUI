@@ -1,5 +1,7 @@
 # csvPLOT
 
+**简体中文** | [English](README.en.md)
+
 多曲线叠加、后向移动平均平滑与期刊插图排版。[系列首页](../README.md) · [实验 CSV](examples/experiment_curves.csv)
 
 ```powershell
